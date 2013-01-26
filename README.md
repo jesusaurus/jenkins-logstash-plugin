@@ -1,11 +1,15 @@
 Jenkins Logstash Plugin
 =======================
 
-This plugin adds support for sending a job' console log to Logstash via Redis.
+This plugin adds support for sending a job's console log to Logstash via Redis.
 
 Install
 =======
 
+* Generate the `hpi` file with the command: `mvn package`
+
+* Put the `hpi` file in the directory `$JENKINS_HOME/plugins`
+* Restart jenkins
 
 Configure
 =========

@@ -40,6 +40,7 @@
   <version>0.7-SNAPSHOT</version>
   <name>Logstash</name>
   <description>Ships jenkins console logs to redis for logstash consumption.</description>
+  <url>http://wiki.jenkins-ci.org/display/JENKINS/Logstash+Plugin</url>
 
   <dependencies>
     <dependency>
