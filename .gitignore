@@ -1,0 +1,6 @@
+target
+work
+
+# Vim junk files
+.*.swp
+*~
