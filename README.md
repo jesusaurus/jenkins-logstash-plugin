@@ -26,6 +26,6 @@ The Logstash Plugin is licensed under the MIT License.
 Contributing
 ============
 
-* Fork the project on [Github](https://github.com/jesusaurus/jenkins-logstash-plugin)
+* Fork the project on [Github](https://github.com/jenkinsci/logstash-plugin)
 * Make your feature addition or bug fix, write tests, commit.
 * Send me a pull request. Bonus points for topic branches.
