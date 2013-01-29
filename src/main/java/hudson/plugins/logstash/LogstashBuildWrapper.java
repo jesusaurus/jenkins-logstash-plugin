@@ -36,6 +36,7 @@ import hudson.util.FormValidation;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.util.regex.Pattern;
 
 import net.sf.json.JSONObject;
 
@@ -175,7 +176,15 @@ public class LogstashBuildWrapper extends BuildWrapper {
         @Override
         protected void eol(byte[] b, int len) throws IOException {
             delegate.write(b, 0, len);
-            String line = new String(b, 0, len).replaceAll("\\p{C}", ""); //remove non-printables
+            String line = new String(b, 0, len).trim().replaceAll("\\p{C}", "");
+
+            //remove ansi-conceal sequences
+            Pattern p = Pattern.compile(".*?\\[8m.*?\\[0m.*?");
+            while (p.matcher(line).matches()) {
+                int start = line.indexOf("[8m");
+                int end = line.indexOf("[0m") + 3;
+                line = line.substring(0, start) + line.substring(end);
+            }
 
             if (LogstashBuildWrapper.this.redis != null) {
                 JSONObject fields = new JSONObject();
