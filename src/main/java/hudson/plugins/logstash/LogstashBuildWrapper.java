@@ -156,7 +156,7 @@ public class LogstashBuildWrapper extends BuildWrapper {
                 this.jedis = new Jedis(LogstashBuildWrapper.this.redis.host, port);
 
                 String pass = LogstashBuildWrapper.this.redis.pass;
-                if (pass != null) {
+                if (pass != null && !pass.isEmpty()) {
                     this.jedis.auth(pass);
                 }
 
