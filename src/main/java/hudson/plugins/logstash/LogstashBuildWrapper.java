@@ -188,7 +188,6 @@ public class LogstashBuildWrapper extends BuildWrapper {
 
             if (LogstashBuildWrapper.this.redis != null) {
                 JSONObject fields = new JSONObject();
-                fields.put("message", line);
                 fields.put("logsource", LogstashBuildWrapper.this.redis.type);
                 fields.put("program", "jenkins");
                 fields.put("job", LogstashBuildWrapper.this.jobName);
