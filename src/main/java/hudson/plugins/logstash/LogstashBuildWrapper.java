@@ -186,7 +186,7 @@ public class LogstashBuildWrapper extends BuildWrapper {
                 line = line.substring(0, start) + line.substring(end);
             }
 
-            if (LogstashBuildWrapper.this.redis != null) {
+            if (LogstashBuildWrapper.this.redis != null && LogstashBuildWrapper.this.useRedis && !line.isEmpty()) {
                 JSONObject fields = new JSONObject();
                 fields.put("logsource", LogstashBuildWrapper.this.redis.type);
                 fields.put("program", "jenkins");
