@@ -152,18 +152,32 @@ public class LogstashBuildWrapper extends BuildWrapper {
             this.delegate = delegate;
 
             if (LogstashBuildWrapper.this.useRedis) {
-                int port = (int)Integer.parseInt(LogstashBuildWrapper.this.redis.port);
-                this.jedis = new Jedis(LogstashBuildWrapper.this.redis.host, port);
+                Jedis jedis;
+                try {
+                    int port = (int)Integer.parseInt(LogstashBuildWrapper.this.redis.port);
+                    jedis = new Jedis(LogstashBuildWrapper.this.redis.host, port);
 
-                String pass = LogstashBuildWrapper.this.redis.pass;
-                if (pass != null && !pass.isEmpty()) {
-                    this.jedis.auth(pass);
-                }
+                    String pass = LogstashBuildWrapper.this.redis.pass;
+                    if (pass != null && !pass.isEmpty()) {
+                        jedis.auth(pass);
+                    }
 
-                int numb = (int)Integer.parseInt(LogstashBuildWrapper.this.redis.numb);
-                if (numb != 0) {
-                   this.jedis.select(numb);
+                    int numb = (int)Integer.parseInt(LogstashBuildWrapper.this.redis.numb);
+                    if (numb != 0) {
+                       jedis.select(numb);
+                    }
+                } catch (java.lang.Throwable t) {
+                    LogstashBuildWrapper.this.useRedis = false;
+                    String error = "Unable to connect to redis: " + t.getMessage() + "\n";
+                    try {
+                        delegate.write(error.getBytes());
+                        delegate.flush();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                    jedis = null;
                 }
+                this.jedis = jedis;
             } else {
                 // finals must be initialized
                 this.jedis = null;

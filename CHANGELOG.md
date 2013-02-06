@@ -13,3 +13,8 @@
 
 * No longer duplicating every line in metadata.
 * Fix bug when no password is used for redis.
+
+0.7.3
+-----
+
+* Continue to output to the console log when redis is down.
