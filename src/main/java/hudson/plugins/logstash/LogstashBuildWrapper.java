@@ -190,6 +190,7 @@ public class LogstashBuildWrapper extends BuildWrapper {
         @Override
         protected void eol(byte[] b, int len) throws IOException {
             delegate.write(b, 0, len);
+            delegate.flush();
             String line = new String(b, 0, len).trim().replaceAll("\\p{C}", "");
 
             //remove ansi-conceal sequences
