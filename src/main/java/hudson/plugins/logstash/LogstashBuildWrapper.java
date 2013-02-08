@@ -30,6 +30,7 @@ import hudson.model.AbstractBuild;
 import hudson.model.AbstractProject;
 import hudson.model.Build;
 import hudson.model.BuildListener;
+import hudson.model.Run;
 import hudson.tasks.BuildWrapper;
 import hudson.tasks.BuildWrapperDescriptor;
 import hudson.util.FormValidation;
@@ -105,9 +106,9 @@ public class LogstashBuildWrapper extends BuildWrapper {
             BuildListener listener) throws IOException, InterruptedException {
         this.jobName = build.getProject().getDisplayName();
         this.buildHost = build.getBuiltOn().getDisplayName();
-        this.buildNum = ((Build)build).number;
+        this.buildNum = ((Run)build).number;
         this.rootJobName = build.getProject().getRootProject().getDisplayName();
-        this.rootBuildNum = ((Build)build.getRootBuild()).number;
+        this.rootBuildNum = ((Run)build.getRootBuild()).number;
 
         return new Environment() {
         };

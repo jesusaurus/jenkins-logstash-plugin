@@ -18,3 +18,4 @@
 -----
 
 * Continue to output to the console log when redis is down.
+* Add support for more types of builds.
