@@ -183,6 +183,15 @@ public class LogstashBuildWrapper extends BuildWrapper {
                 // finals must be initialized
                 this.jedis = null;
             }
+
+            if (this.jedis != null) {
+                String msg = new String("Logstash plugin enabling redis.");
+                try {
+                    delegate.write(msg.getBytes());
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
         }
 
         /**
