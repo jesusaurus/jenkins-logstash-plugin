@@ -104,6 +104,7 @@ public class LogstashBuildWrapper extends BuildWrapper {
     @Override
     public Environment setUp(AbstractBuild build, Launcher launcher,
             BuildListener listener) throws IOException, InterruptedException {
+
         this.jobName = build.getProject().getDisplayName();
         this.buildHost = build.getBuiltOn().getDisplayName();
         this.buildNum = ((Run)build).number;
