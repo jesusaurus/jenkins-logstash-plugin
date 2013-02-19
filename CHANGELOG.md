@@ -1,7 +1,8 @@
 0.7.4
 -----
 
-* Log the activation of Logstash
+* If the connection to redis fails, stop using redis.
+* Log the activation of Logstash.
 
 0.7.3
 -----

@@ -143,6 +143,7 @@ public class LogstashBuildWrapper extends BuildWrapper {
         private final OutputStream delegate;
 
         private final Jedis jedis;
+        private boolean connFailed;
 
         /**
          * Create a new {@link LogstashOutputStream}.
@@ -152,6 +153,7 @@ public class LogstashBuildWrapper extends BuildWrapper {
          */
         private LogstashOutputStream(OutputStream delegate) {
             this.delegate = delegate;
+            this.connFailed = false;
 
             if (LogstashBuildWrapper.this.useRedis) {
                 Jedis jedis;
@@ -202,6 +204,7 @@ public class LogstashBuildWrapper extends BuildWrapper {
         protected void eol(byte[] b, int len) throws IOException {
             delegate.write(b, 0, len);
             delegate.flush();
+
             String line = new String(b, 0, len).trim().replaceAll("\\p{C}", "");
 
             //remove ansi-conceal sequences
@@ -212,22 +215,29 @@ public class LogstashBuildWrapper extends BuildWrapper {
                 line = line.substring(0, start) + line.substring(end);
             }
 
-            if (LogstashBuildWrapper.this.redis != null && LogstashBuildWrapper.this.useRedis && !line.isEmpty()) {
-                JSONObject fields = new JSONObject();
-                fields.put("logsource", LogstashBuildWrapper.this.redis.type);
-                fields.put("program", "jenkins");
-                fields.put("job", LogstashBuildWrapper.this.jobName);
-                fields.put("build", LogstashBuildWrapper.this.buildNum);
-                fields.put("node", LogstashBuildWrapper.this.buildHost);
-                fields.put("root-job", LogstashBuildWrapper.this.rootJobName);
-                fields.put("root-build", LogstashBuildWrapper.this.rootBuildNum);
+            if (LogstashBuildWrapper.this.redis != null && LogstashBuildWrapper.this.useRedis && !line.isEmpty() && !this.connFailed) {
+                try {
+                    JSONObject fields = new JSONObject();
+                    fields.put("logsource", LogstashBuildWrapper.this.redis.type);
+                    fields.put("program", "jenkins");
+                    fields.put("job", LogstashBuildWrapper.this.jobName);
+                    fields.put("build", LogstashBuildWrapper.this.buildNum);
+                    fields.put("node", LogstashBuildWrapper.this.buildHost);
+                    fields.put("root-job", LogstashBuildWrapper.this.rootJobName);
+                    fields.put("root-build", LogstashBuildWrapper.this.rootBuildNum);
 
-                JSONObject json = new JSONObject();
-                json.put("@fields", fields);
-                json.put("@type", LogstashBuildWrapper.this.redis.type);
-                json.put("@message", line);
+                    JSONObject json = new JSONObject();
+                    json.put("@fields", fields);
+                    json.put("@type", LogstashBuildWrapper.this.redis.type);
+                    json.put("@message", line);
 
-                this.jedis.rpush(LogstashBuildWrapper.this.redis.key, json.toString());
+                    this.jedis.rpush(LogstashBuildWrapper.this.redis.key, json.toString());
+                } catch (java.net.SocketException se) {
+                    this.connFailed = true;
+                    String msg = new String("Connection to redis failed. Disabling logstash output.");
+                    delegate.write(msg.getBytes());
+                    delegate.flush();
+                }
             }
         }
 
