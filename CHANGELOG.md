@@ -1,6 +1,7 @@
 0.7.4
 -----
 
+* Flush downstream OutputStream when we flush.
 * If the connection to redis fails, stop using redis.
 * Log the activation of Logstash.
 
