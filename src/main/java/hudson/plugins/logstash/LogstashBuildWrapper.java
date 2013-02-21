@@ -232,7 +232,7 @@ public class LogstashBuildWrapper extends BuildWrapper {
                     json.put("@message", line);
 
                     this.jedis.rpush(LogstashBuildWrapper.this.redis.key, json.toString());
-                } catch (java.net.SocketException se) {
+                } catch (java.lang.Throwable t) {
                     this.connFailed = true;
                     String msg = new String("Connection to redis failed. Disabling logstash output.");
                     delegate.write(msg.getBytes());
