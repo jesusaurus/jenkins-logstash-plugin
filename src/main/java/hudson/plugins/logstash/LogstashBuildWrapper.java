@@ -172,7 +172,12 @@ public class LogstashBuildWrapper extends BuildWrapper {
                     }
                 } catch (java.lang.Throwable t) {
                     LogstashBuildWrapper.this.useRedis = false;
-                    String error = "Unable to connect to redis: " + t.getMessage() + "\n";
+
+                    StringWriter s = new StringWriter();
+                    PrintWriter p = new PrintWriter(s);
+                    t.printStackTrace(p);
+                    String error = "Unable to connect to redis: " + s.toString() + "\n";
+
                     try {
                         delegate.write(error.getBytes());
                         delegate.flush();
