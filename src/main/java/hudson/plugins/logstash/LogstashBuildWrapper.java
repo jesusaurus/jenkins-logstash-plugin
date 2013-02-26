@@ -195,7 +195,9 @@ public class LogstashBuildWrapper extends BuildWrapper {
             }
 
             if (this.jedis != null) {
-                String msg = new String("Logstash plugin enabling redis.");
+                String msg = new String("Logstash plugin connected to redis://" +
+                        LogstashBuildWrapper.this.redis.host + ":" +
+                        LogstashBuildWrapper.this.redis.port);
                 try {
                     delegate.write(msg.getBytes());
                 } catch (IOException e) {
