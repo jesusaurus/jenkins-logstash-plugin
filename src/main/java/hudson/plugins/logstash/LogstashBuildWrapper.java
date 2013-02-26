@@ -235,6 +235,7 @@ public class LogstashBuildWrapper extends BuildWrapper {
                     json.put("@fields", fields);
                     json.put("@type", LogstashBuildWrapper.this.redis.type);
                     json.put("@message", line);
+                    json.put("@source_host", new String("jenkins"));
 
                     this.jedis.rpush(LogstashBuildWrapper.this.redis.key, json.toString());
                 } catch (java.lang.Throwable t) {
