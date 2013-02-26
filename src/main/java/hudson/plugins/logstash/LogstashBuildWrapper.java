@@ -37,6 +37,8 @@ import hudson.util.FormValidation;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.util.regex.Pattern;
 
 import net.sf.json.JSONObject;
