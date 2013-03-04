@@ -21,7 +21,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package hudson.plugins.logstash;
+package jenkins.plugins.logstash;
 
 import hudson.Extension;
 import hudson.Launcher;
@@ -37,8 +37,6 @@ import hudson.util.FormValidation;
 
 import java.io.IOException;
 import java.io.OutputStream;
-import java.io.PrintWriter;
-import java.io.StringWriter;
 import java.util.regex.Pattern;
 
 import net.sf.json.JSONObject;
@@ -85,11 +83,23 @@ public class LogstashBuildWrapper extends BuildWrapper {
     public RedisBlock redis;
     public boolean useRedis;
 
-    private String jobName;
-    private String buildHost;
-    private int buildNum;
-    private String rootJobName;
-    private int rootBuildNum;
+    public static class BuildBlock {
+        public String jobName;
+        public String buildHost;
+        public int buildNum;
+        public String rootJobName;
+        public int rootBuildNum;
+
+        public BuildBlock(String jn, String bh, int bn, String rjn, int rbn) {
+            jobName = jn;
+            buildHost = bh;
+            buildNum = bn;
+            rootJobName = rjn;
+            rootBuildNum = rbn;
+        }
+    }
+
+    public BuildBlock build;
 
     /**
      * Create a new {@link LogstashBuildWrapper}.
@@ -107,11 +117,13 @@ public class LogstashBuildWrapper extends BuildWrapper {
     public Environment setUp(AbstractBuild build, Launcher launcher,
             BuildListener listener) throws IOException, InterruptedException {
 
-        this.jobName = build.getProject().getDisplayName();
-        this.buildHost = build.getBuiltOn().getDisplayName();
-        this.buildNum = ((Run)build).number;
-        this.rootJobName = build.getProject().getRootProject().getDisplayName();
-        this.rootBuildNum = ((Run)build.getRootBuild()).number;
+        String jobName = build.getProject().getDisplayName();
+        String buildHost = build.getBuiltOn().getDisplayName();
+        int buildNum = ((Run)build).number;
+        String rootJobName = build.getProject().getRootProject().getDisplayName();
+        int rootBuildNum = ((Run)build.getRootBuild()).number;
+
+        this.build = new BuildBlock(jobName, buildHost, buildNum, rootJobName, rootBuildNum);
 
         return new Environment() {
         };
@@ -122,7 +134,7 @@ public class LogstashBuildWrapper extends BuildWrapper {
      */
     @Override
     public OutputStream decorateLogger(AbstractBuild build, OutputStream logger) {
-        return new LogstashOutputStream(logger);
+        return new LogstashOutputStreamWrapper(logger);
     }
 
     public DescriptorImpl getDescriptor() {
@@ -137,15 +149,7 @@ public class LogstashBuildWrapper extends BuildWrapper {
      * Output stream that writes each line to the provided delegate output
      * stream and also sends it to redis for logstash to consume.
      */
-    private class LogstashOutputStream extends LineTransformationOutputStream {
-
-        /**
-         * The delegate output stream.
-         */
-        private final OutputStream delegate;
-
-        private final Jedis jedis;
-        private boolean connFailed;
+    private class LogstashOutputStreamWrapper extends LogstashOutputStream {
 
         /**
          * Create a new {@link LogstashOutputStream}.
@@ -153,55 +157,21 @@ public class LogstashBuildWrapper extends BuildWrapper {
          * @param delegate
          *            the delegate output stream
          */
-        private LogstashOutputStream(OutputStream delegate) {
-            this.delegate = delegate;
-            this.connFailed = false;
+        private LogstashOutputStreamWrapper(OutputStream delegate) {
+            super(delegate);
 
             if (LogstashBuildWrapper.this.useRedis) {
-                Jedis jedis;
-                try {
-                    int port = (int)Integer.parseInt(LogstashBuildWrapper.this.redis.port);
-                    jedis = new Jedis(LogstashBuildWrapper.this.redis.host, port);
+                setUp(redis, build);
 
-                    String pass = LogstashBuildWrapper.this.redis.pass;
-                    if (pass != null && !pass.isEmpty()) {
-                        jedis.auth(pass);
-                    }
-
-                    int numb = (int)Integer.parseInt(LogstashBuildWrapper.this.redis.numb);
-                    if (numb != 0) {
-                       jedis.select(numb);
-                    }
-                } catch (java.lang.Throwable t) {
-                    LogstashBuildWrapper.this.useRedis = false;
-
-                    StringWriter s = new StringWriter();
-                    PrintWriter p = new PrintWriter(s);
-                    t.printStackTrace(p);
-                    String error = "Unable to connect to redis: " + s.toString() + "\n";
-
+                if(connect()) {
+                    String msg = new String("Logstash plugin connected to redis://" +
+                            LogstashBuildWrapper.this.redis.host + ":" +
+                            LogstashBuildWrapper.this.redis.port + "\n");
                     try {
-                        delegate.write(error.getBytes());
-                        delegate.flush();
+                        delegate.write(msg.getBytes());
                     } catch (IOException e) {
                         e.printStackTrace();
                     }
-                    jedis = null;
-                }
-                this.jedis = jedis;
-            } else {
-                // finals must be initialized
-                this.jedis = null;
-            }
-
-            if (this.jedis != null) {
-                String msg = new String("Logstash plugin connected to redis://" +
-                        LogstashBuildWrapper.this.redis.host + ":" +
-                        LogstashBuildWrapper.this.redis.port);
-                try {
-                    delegate.write(msg.getBytes());
-                } catch (IOException e) {
-                    e.printStackTrace();
                 }
             }
         }
@@ -214,58 +184,19 @@ public class LogstashBuildWrapper extends BuildWrapper {
             delegate.write(b, 0, len);
             delegate.flush();
 
-            String line = new String(b, 0, len).trim().replaceAll("\\p{C}", "");
+            String line = new String(b, 0, len).trim();
 
-            //remove ansi-conceal sequences
-            Pattern p = Pattern.compile(".*?\\[8m.*?\\[0m.*?");
-            while (p.matcher(line).matches()) {
-                int start = line.indexOf("[8m");
-                int end = line.indexOf("[0m") + 3;
-                line = line.substring(0, start) + line.substring(end);
-            }
-
-            if (LogstashBuildWrapper.this.redis != null && LogstashBuildWrapper.this.useRedis && !line.isEmpty() && !this.connFailed) {
+            if (redis != null && useRedis && !line.isEmpty() && !connFailed) {
                 try {
-                    JSONObject fields = new JSONObject();
-                    fields.put("logsource", LogstashBuildWrapper.this.redis.type);
-                    fields.put("program", "jenkins");
-                    fields.put("job", LogstashBuildWrapper.this.jobName);
-                    fields.put("build", LogstashBuildWrapper.this.buildNum);
-                    fields.put("node", LogstashBuildWrapper.this.buildHost);
-                    fields.put("root-job", LogstashBuildWrapper.this.rootJobName);
-                    fields.put("root-build", LogstashBuildWrapper.this.rootBuildNum);
-
-                    JSONObject json = new JSONObject();
-                    json.put("@fields", fields);
-                    json.put("@type", LogstashBuildWrapper.this.redis.type);
-                    json.put("@message", line);
-                    json.put("@source_host", new String("jenkins"));
-
-                    this.jedis.rpush(LogstashBuildWrapper.this.redis.key, json.toString());
+                    JSONObject json = makeJson(line);
+                    jedis.rpush(redis.key, json.toString());
                 } catch (java.lang.Throwable t) {
-                    this.connFailed = true;
-                    String msg = new String("Connection to redis failed. Disabling logstash output.");
+                    connFailed = true;
+                    String msg = new String("Connection to redis failed. Disabling logstash output.\n");
                     delegate.write(msg.getBytes());
                     delegate.flush();
                 }
             }
-        }
-
-        /**
-         * {@inheritDoc}
-         */
-        @Override
-        public void flush() throws IOException {
-            delegate.flush();
-        }
-
-        /**
-         * {@inheritDoc}
-         */
-        @Override
-        public void close() throws IOException {
-            delegate.close();
-            super.close();
         }
     }
 
