@@ -28,18 +28,13 @@ public class LogstashOutputStreamTest {
     LogstashOutputStream los;
     ByteArrayOutputStream baos;
 
-    RedisBlock rb;
-    BuildBlock bb;
-
     @Before
     public void setUp() {
         baos = new ByteArrayOutputStream();
         los = new LogstashOutputStream(baos);
 
-        rb = new RedisBlock("host", "80", "0", "pass", "type", "key");
-        bb = new BuildBlock("job", "build", 0, "root job", 0);
-
-        los.setUp(rb, bb);
+        los.rBlock = new RedisBlock("host", "80", "0", "pass", "type", "key");
+        los.bBlock = new BuildBlock("job", "build", 0, "root job", 0);
     }
 
     @Test

@@ -35,11 +35,6 @@ public class LogstashOutputStream extends PlainTextConsoleOutputStream {
         jedis = null;
     }
 
-    public void setUp(RedisBlock rb, BuildBlock bb) {
-        rBlock = rb;
-        bBlock = bb;
-    }
-
     public boolean connect() {
         boolean result;
         try {
@@ -80,15 +75,21 @@ public class LogstashOutputStream extends PlainTextConsoleOutputStream {
         delegate.write(b, 0, len);
         delegate.flush();
 
-        String line = new String(b, 0, len).trim();
+        if (rBlock != null && bBlock != null) {
+            String line = new String(b, 0, len).trim();
 
-        if (jedis != null && !line.isEmpty() && !connFailed) {
-            String blob = makeJson(line).toString();
-            jedis.rpush(rBlock.key, blob);
+            if (jedis != null && !line.isEmpty() && !connFailed) {
+                String blob = makeJson(line).toString();
+                jedis.rpush(rBlock.key, blob);
+            }
         }
     }
 
     protected JSONObject makeJson(String line) {
+        if (rBlock == null || bBlock == null) {
+            return null;
+        }
+
         JSONObject fields = new JSONObject();
         fields.put("logsource", rBlock.type);
         fields.put("program", "jenkins");

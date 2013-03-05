@@ -37,6 +37,7 @@ import hudson.util.FormValidation;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.io.PrintStream;
 import java.util.regex.Pattern;
 
 import net.sf.json.JSONObject;
@@ -101,6 +102,8 @@ public class LogstashBuildWrapper extends BuildWrapper {
 
     public BuildBlock build;
 
+    private LogstashOutputStreamWrapper outputStream;
+
     /**
      * Create a new {@link LogstashBuildWrapper}.
      */
@@ -124,6 +127,7 @@ public class LogstashBuildWrapper extends BuildWrapper {
         int rootBuildNum = ((Run)build.getRootBuild()).number;
 
         this.build = new BuildBlock(jobName, buildHost, buildNum, rootJobName, rootBuildNum);
+        outputStream.bBlock = this.build;
 
         return new Environment() {
         };
@@ -134,7 +138,8 @@ public class LogstashBuildWrapper extends BuildWrapper {
      */
     @Override
     public OutputStream decorateLogger(AbstractBuild build, OutputStream logger) {
-        return new LogstashOutputStreamWrapper(logger);
+        outputStream =  new LogstashOutputStreamWrapper(logger);
+        return outputStream;
     }
 
     public DescriptorImpl getDescriptor() {
@@ -161,17 +166,20 @@ public class LogstashBuildWrapper extends BuildWrapper {
             super(delegate);
 
             if (LogstashBuildWrapper.this.useRedis) {
-                setUp(redis, build);
-
-                if(connect()) {
-                    String msg = new String("Logstash plugin connected to redis://" +
-                            LogstashBuildWrapper.this.redis.host + ":" +
-                            LogstashBuildWrapper.this.redis.port + "\n");
-                    try {
-                        delegate.write(msg.getBytes());
-                    } catch (IOException e) {
-                        e.printStackTrace();
+                try {
+                    if (redis == null) {
+                        delegate.write("No redis configured.".getBytes());
+                    } else {
+                        rBlock = redis;
+                        if(connect()) {
+                            String msg = new String("Logstash plugin connected to redis://" +
+                                    LogstashBuildWrapper.this.redis.host + ":" +
+                                    LogstashBuildWrapper.this.redis.port + "\n");
+                            delegate.write(msg.getBytes());
+                        }
                     }
+                } catch (IOException e) {
+                    e.printStackTrace();
                 }
             }
         }
@@ -188,13 +196,24 @@ public class LogstashBuildWrapper extends BuildWrapper {
 
             if (redis != null && useRedis && !line.isEmpty() && !connFailed) {
                 try {
+                    /*
+                     * TODO: queue lines received before the BuildBlock is set up.
+                     * Because because decorateLogger() is called before setUp(),
+                     * the BuildBlock is not available to the LogstashOutputStreamWrapper
+                     * constructor. Lines sent to the logger between these two calls (such
+                     * as the 'Started by...' line) will generate null json data due to a
+                     * lack of build information.
+                     */
                     JSONObject json = makeJson(line);
-                    jedis.rpush(redis.key, json.toString());
+                    if (json != null) {
+                        jedis.rpush(redis.key, json.toString());
+                    }
                 } catch (java.lang.Throwable t) {
                     connFailed = true;
                     String msg = new String("Connection to redis failed. Disabling logstash output.\n");
                     delegate.write(msg.getBytes());
                     delegate.flush();
+                    t.printStackTrace(new PrintStream(delegate));
                 }
             }
         }
