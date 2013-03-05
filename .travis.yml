@@ -6,3 +6,5 @@ jdk:
 branches:
   except:
     - /^test.*/i
+
+install: 'mvn clean package -DskipTests=true'
