@@ -37,7 +37,7 @@
 
   <artifactId>logstash</artifactId>
   <packaging>hpi</packaging>
-  <version>0.7.5-SNAPSHOT</version>
+  <version>0.8.0</version>
   <name>Logstash</name>
   <description>Ships jenkins console logs to redis for logstash consumption.</description>
   <url>http://wiki.jenkins-ci.org/display/JENKINS/Logstash+Plugin</url>
