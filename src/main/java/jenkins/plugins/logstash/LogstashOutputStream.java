@@ -39,6 +39,7 @@ public class LogstashOutputStream extends PlainTextConsoleOutputStream {
         boolean result;
         try {
             int port = (int)Integer.parseInt(rBlock.port);
+            // FIXME: Jedis instances are not threadsafe! Need to use JedisPool
             jedis = new Jedis(rBlock.host, port);
 
             if (rBlock.pass != null && !rBlock.pass.isEmpty()) {
