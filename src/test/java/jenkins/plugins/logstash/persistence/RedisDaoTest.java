@@ -110,7 +110,7 @@ public class RedisDaoTest {
 
     verify(mockPool).getResource();
     verify(mockJedis).auth("password");
-    verify(mockLogger).println(Matchers.anyString());
+    verify(mockLogger).println(Matchers.startsWith("redis.clients.jedis.exceptions.JedisConnectionException: Unauthorized"));
   }
 
   @Test
@@ -126,7 +126,7 @@ public class RedisDaoTest {
 
     verify(mockPool).getResource();
     verify(mockJedis).auth("password");
-    verify(mockLogger).println(Matchers.anyString());
+    verify(mockLogger).println(Matchers.startsWith("redis.clients.jedis.exceptions.JedisConnectionException: Connection refused"));
     verify(mockJedis).connect();
   }
 
@@ -145,7 +145,7 @@ public class RedisDaoTest {
 
     verify(mockPool).getResource();
     verify(mockJedis).auth("password");
-    verify(mockLogger).println(Matchers.anyString());
+    verify(mockLogger).println(Matchers.startsWith("redis.clients.jedis.exceptions.JedisConnectionException: Push failed"));
     verify(mockJedis).connect();
     verify(mockJedis).rpush("logstash", json);
   }
