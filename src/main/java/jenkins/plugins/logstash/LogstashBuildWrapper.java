@@ -21,31 +21,25 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
+
 package jenkins.plugins.logstash;
 
 import hudson.Extension;
 import hudson.Launcher;
-import hudson.console.LineTransformationOutputStream;
+import hudson.model.BuildListener;
 import hudson.model.AbstractBuild;
 import hudson.model.AbstractProject;
-import hudson.model.Build;
-import hudson.model.BuildListener;
-import hudson.model.Run;
 import hudson.tasks.BuildWrapper;
 import hudson.tasks.BuildWrapperDescriptor;
-import hudson.util.FormValidation;
 
 import java.io.IOException;
 import java.io.OutputStream;
-import java.io.PrintStream;
-import java.util.regex.Pattern;
 
-import net.sf.json.JSONObject;
+import jenkins.model.Jenkins;
+import jenkins.plugins.logstash.persistence.BuildData;
+import jenkins.plugins.logstash.persistence.LogstashIndexerDao;
 
 import org.kohsuke.stapler.DataBoundConstructor;
-import org.kohsuke.stapler.QueryParameter;
-
-import redis.clients.jedis.Jedis;
 
 /**
  * Build wrapper that decorates the build's logger to insert a
@@ -55,195 +49,80 @@ import redis.clients.jedis.Jedis;
  */
 public class LogstashBuildWrapper extends BuildWrapper {
 
-    /**
-     * Encapsulate configuration data from the optionalBlock.
-     */
-    public static class RedisBlock {
-        public String host;
-        public String port;
-        public String numb;
-        public String pass;
+  private transient LogstashOutputStream outputStream;
 
-        public String dataType;
-        public String key;
-        public String type;
+  /**
+   * Create a new {@link LogstashBuildWrapper}.
+   */
+  @DataBoundConstructor
+  public LogstashBuildWrapper() {}
 
-        @DataBoundConstructor
-        public RedisBlock(String host, String port, String numb,
-                          String pass, String dataType, String key) {
-            this.host = host;
-            this.port = port;
-            this.numb = numb;
-            this.pass = pass;
-            this.dataType = dataType;
-            this.key = key;
-            this.type = new String("jenkins");
-        }
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  public Environment setUp(@SuppressWarnings("rawtypes") AbstractBuild build, Launcher launcher, BuildListener listener) throws IOException, InterruptedException {
+
+    return new Environment() {};
+  }
+
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  public OutputStream decorateLogger(@SuppressWarnings("rawtypes") AbstractBuild build, OutputStream logger) {
+    LogstashIndexerDao dao = null;
+    try {
+      dao = getDao();
+    } catch (InstantiationException e) {
+      e.printStackTrace();
     }
 
-    public RedisBlock redis;
-    public boolean useRedis;
+    BuildData buildData = new BuildData(build);
+    String jenkinsUrl = getJenkinsUrl();
+    outputStream = new LogstashOutputStream(logger, dao, buildData, jenkinsUrl);
 
-    public static class BuildBlock {
-        public String jobName;
-        public String buildHost;
-        public int buildNum;
-        public String rootJobName;
-        public int rootBuildNum;
+    return outputStream;
+  }
 
-        public BuildBlock(String jn, String bh, int bn, String rjn, int rbn) {
-            jobName = jn;
-            buildHost = bh;
-            buildNum = bn;
-            rootJobName = rjn;
-            rootBuildNum = rbn;
-        }
-    }
+  public DescriptorImpl getDescriptor() {
+    return (DescriptorImpl) super.getDescriptor();
+  }
 
-    public BuildBlock build;
+  // Method to encapsulate calls to Jenkins.getInstance() for unit-testing
+  protected LogstashIndexerDao getDao() throws InstantiationException {
+    return LogstashInstallation.getLogstashDescriptor().getIndexerDao();
+  }
 
-    private LogstashOutputStreamWrapper outputStream;
+  protected String getJenkinsUrl() {
+    return Jenkins.getInstance().getRootUrl();
+  }
 
-    /**
-     * Create a new {@link LogstashBuildWrapper}.
-     */
-    @DataBoundConstructor
-    public LogstashBuildWrapper(RedisBlock redis) {
-        this.redis = redis;
-        this.useRedis = true;
-    }
+  /**
+   * Registers {@link LogstashBuildWrapper} as a {@link BuildWrapper}.
+   */
+  @Extension
+  public static class DescriptorImpl extends BuildWrapperDescriptor {
 
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public Environment setUp(AbstractBuild build, Launcher launcher,
-            BuildListener listener) throws IOException, InterruptedException {
-
-        String jobName = build.getProject().getDisplayName();
-        String buildHost = build.getBuiltOn().getDisplayName();
-        int buildNum = ((Run)build).number;
-        String rootJobName = build.getProject().getRootProject().getDisplayName();
-        int rootBuildNum = ((Run)build.getRootBuild()).number;
-
-        this.build = new BuildBlock(jobName, buildHost, buildNum, rootJobName, rootBuildNum);
-        outputStream.bBlock = this.build;
-
-        return new Environment() {
-        };
+    public DescriptorImpl() {
+      super(LogstashBuildWrapper.class);
+      load();
     }
 
     /**
      * {@inheritDoc}
      */
     @Override
-    public OutputStream decorateLogger(AbstractBuild build, OutputStream logger) {
-        outputStream =  new LogstashOutputStreamWrapper(logger);
-        return outputStream;
-    }
-
-    public DescriptorImpl getDescriptor() {
-        return (DescriptorImpl) super.getDescriptor();
-    }
-
-    public FormValidation doCheckHost(@QueryParameter final String value) {
-        return (value.trim().length() == 0) ? FormValidation.error("Host cannot be empty.") : FormValidation.ok();
+    public String getDisplayName() {
+      return Messages.DisplayName();
     }
 
     /**
-     * Output stream that writes each line to the provided delegate output
-     * stream and also sends it to redis for logstash to consume.
+     * {@inheritDoc}
      */
-    private class LogstashOutputStreamWrapper extends LogstashOutputStream {
-
-        /**
-         * Create a new {@link LogstashOutputStream}.
-         *
-         * @param delegate
-         *            the delegate output stream
-         */
-        private LogstashOutputStreamWrapper(OutputStream delegate) {
-            super(delegate);
-
-            if (LogstashBuildWrapper.this.useRedis) {
-                try {
-                    if (redis == null) {
-                        delegate.write("No redis configured.".getBytes());
-                    } else {
-                        rBlock = redis;
-                        if(connect()) {
-                            String msg = new String("Logstash plugin connected to redis://" +
-                                    LogstashBuildWrapper.this.redis.host + ":" +
-                                    LogstashBuildWrapper.this.redis.port + "\n");
-                            delegate.write(msg.getBytes());
-                        }
-                    }
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
-        }
-
-        /**
-         * {@inheritDoc}
-         */
-        @Override
-        protected void eol(byte[] b, int len) throws IOException {
-            delegate.write(b, 0, len);
-            delegate.flush();
-
-            String line = new String(b, 0, len).trim();
-
-            if (redis != null && useRedis && !line.isEmpty() && !connFailed) {
-                try {
-                    /*
-                     * TODO: queue lines received before the BuildBlock is set up.
-                     * Because because decorateLogger() is called before setUp(),
-                     * the BuildBlock is not available to the LogstashOutputStreamWrapper
-                     * constructor. Lines sent to the logger between these two calls (such
-                     * as the 'Started by...' line) will generate null json data due to a
-                     * lack of build information.
-                     */
-                    JSONObject json = makeJson(line);
-                    if (json != null) {
-                        jedis.rpush(redis.key, json.toString());
-                    }
-                } catch (java.lang.Throwable t) {
-                    connFailed = true;
-                    String msg = new String("Connection to redis failed. Disabling logstash output.\n");
-                    delegate.write(msg.getBytes());
-                    delegate.flush();
-                    t.printStackTrace(new PrintStream(delegate));
-                }
-            }
-        }
+    @Override
+    public boolean isApplicable(AbstractProject<?, ?> item) {
+      return true;
     }
-
-    /**
-     * Registers {@link LogstashBuildWrapper} as a {@link BuildWrapper}.
-     */
-    @Extension
-    public static class DescriptorImpl extends BuildWrapperDescriptor {
-
-        public DescriptorImpl() {
-            super(LogstashBuildWrapper.class);
-            load();
-        }
-
-        /**
-         * {@inheritDoc}
-         */
-        @Override
-        public String getDisplayName() {
-            return Messages.DisplayName();
-        }
-
-        /**
-         * {@inheritDoc}
-         */
-        @Override
-        public boolean isApplicable(AbstractProject<?, ?> item) {
-            return true;
-        }
-    }
+  }
 }
