@@ -50,7 +50,7 @@ import org.kohsuke.stapler.DataBoundConstructor;
  * Post-build action to push build log to Logstash.
  *
  * @author Rusty Gerard
- * @since 0.8.1
+ * @since 1.0.0
  */
 public class LogstashNotifier extends Notifier {
 

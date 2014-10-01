@@ -34,7 +34,7 @@ import net.sf.json.JSONObject;
  * Abstract data access object for Logstash indexers.
  *
  * @author Rusty Gerard
- * @since 0.8.1
+ * @since 1.0.0
  */
 abstract class AbstractLogstashIndexerDao implements LogstashIndexerDao {
   protected String host;

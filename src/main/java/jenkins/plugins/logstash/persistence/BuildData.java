@@ -41,7 +41,7 @@ import com.google.gson.GsonBuilder;
  * POJO for mapping build info to JSON.
  *
  * @author Rusty Gerard
- * @since 0.8.1
+ * @since 1.0.0
  */
 public class BuildData {
   // ISO 8601 date format

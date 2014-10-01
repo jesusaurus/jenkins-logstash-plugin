@@ -37,9 +37,9 @@
 
   <artifactId>logstash</artifactId>
   <packaging>hpi</packaging>
-  <version>0.8.1-SNAPSHOT</version>
+  <version>1.0.0-SNAPSHOT</version>
   <name>Logstash</name>
-  <description>Ships jenkins console logs to redis for logstash consumption.</description>
+  <description>A Logstash agent to send Jenkins logs to a Logstash indexer.</description>
   <url>http://wiki.jenkins-ci.org/display/JENKINS/Logstash+Plugin</url>
 
   <dependencies>
@@ -73,6 +73,11 @@
       <id>jesusaurus</id>
       <name>K Jonathan Harker</name>
       <email>jesusaurus@inbox.com</email>
+    </developer>
+    <developer>
+      <id>rgerard</id>
+      <name>Rusty Gerard</name>
+      <email>rusty.gerard@gmail.com</email>
     </developer>
   </developers>
 

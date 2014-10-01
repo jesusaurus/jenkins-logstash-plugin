@@ -36,7 +36,7 @@ import org.apache.commons.lang.StringUtils;
  * Factory for AbstractLogstashIndexerDao objects.
  *
  * @author Rusty Gerard
- * @since 0.8.1
+ * @since 1.0.0
  */
 public final class IndexerDaoFactory {
   private static AbstractLogstashIndexerDao instance = null;

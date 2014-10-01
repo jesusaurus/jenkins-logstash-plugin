@@ -47,7 +47,7 @@ import org.kohsuke.stapler.StaplerRequest;
  * POJO for storing global configurations shared between components.
  *
  * @author Rusty Gerard
- * @since 0.8.1
+ * @since 1.0.0
  */
 public class LogstashInstallation extends ToolInstallation {
   private static final long serialVersionUID = -5730780734005293851L;

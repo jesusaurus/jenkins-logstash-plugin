@@ -33,7 +33,7 @@ import net.sf.json.JSONObject;
  * Interface describing data access objects for Logstash indexers.
  *
  * @author Rusty Gerard
- * @since 0.8.1
+ * @since 1.0.0
  */
 public interface LogstashIndexerDao {
   static enum IndexerType {

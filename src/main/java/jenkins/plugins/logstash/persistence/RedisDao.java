@@ -38,7 +38,7 @@ import redis.clients.jedis.exceptions.JedisException;
  * Redis Data Access Object.
  *
  * @author Rusty Gerard
- * @since 0.8.1
+ * @since 1.0.0
  */
 public class RedisDao extends AbstractLogstashIndexerDao {
   protected static JedisPool pool;
