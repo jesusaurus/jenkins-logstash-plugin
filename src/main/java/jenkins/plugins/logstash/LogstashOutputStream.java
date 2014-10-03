@@ -1,5 +1,6 @@
 package jenkins.plugins.logstash;
 
+import hudson.console.ConsoleNote;
 import hudson.console.PlainTextConsoleOutputStream;
 
 import java.io.IOException;
@@ -49,8 +50,8 @@ public class LogstashOutputStream extends PlainTextConsoleOutputStream {
     delegate.write(b, 0, len);
     delegate.flush();
 
-    // FIXME: Need to convert the data to plain text, not just bytes to characters (some lines contain garbage)
     String line = new String(b, 0, len).trim();
+    line = ConsoleNote.removeNotes(line);
 
     if (!line.isEmpty() && dao != null && !connFailed) {
       JSONObject payload = dao.buildPayload(buildData, jenkinsUrl, Arrays.asList(line));
