@@ -19,7 +19,8 @@ Configure
 
 Currently supported methods of input/output:
 
-* redis {format => 'json_event'}
+* Redis {format => 'json_event'}
+* RabbitMQ {mechanism => PLAIN}
 
 License
 =======

@@ -46,6 +46,7 @@ public final class IndexerDaoFactory {
     Map<IndexerType, Class<?>> indexerMap = new HashMap<IndexerType, Class<?>>();
 
     indexerMap.put(IndexerType.REDIS, RedisDao.class);
+    indexerMap.put(IndexerType.RABBIT_MQ, RabbitMqDao.class);
 
     INDEXER_MAP = Collections.unmodifiableMap(indexerMap);
   }
@@ -66,7 +67,7 @@ public final class IndexerDaoFactory {
    * @return The instance of the appropriate indexer DAO, never null
    * @throws InstantiationException
    */
-  public static synchronized LogstashIndexerDao getInstance(IndexerType type, String host, int port, String key, String password) throws InstantiationException {
+  public static synchronized LogstashIndexerDao getInstance(IndexerType type, String host, int port, String key, String username, String password) throws InstantiationException {
     if (!INDEXER_MAP.containsKey(type)) {
       throw new InstantiationException("Unknown IndexerType '" + type + "'.");
     }
@@ -78,7 +79,7 @@ public final class IndexerDaoFactory {
         throw new InstantiationException(e.getMessage());
       }
 
-      instance.init(host, port, key, password);
+      instance.init(host, port, key, username, password);
     }
 
     return instance;

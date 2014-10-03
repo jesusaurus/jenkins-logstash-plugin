@@ -24,29 +24,29 @@
 
 package jenkins.plugins.logstash.persistence;
 
+import java.io.IOException;
 import java.io.PrintStream;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.exception.ExceptionUtils;
 
-import redis.clients.jedis.Jedis;
-import redis.clients.jedis.JedisPool;
-import redis.clients.jedis.JedisPoolConfig;
-import redis.clients.jedis.exceptions.JedisException;
+import com.rabbitmq.client.Channel;
+import com.rabbitmq.client.Connection;
+import com.rabbitmq.client.ConnectionFactory;
 
 /**
- * Redis Data Access Object.
+ * RabbitMQ Data Access Object.
  *
  * @author Rusty Gerard
  * @since 1.0.0
  */
-public class RedisDao extends AbstractLogstashIndexerDao {
-  protected static JedisPool pool;
+public class RabbitMqDao extends AbstractLogstashIndexerDao {
+  ConnectionFactory pool;
 
-  RedisDao() { /* Required by IndexerDaoFactory */ }
+  RabbitMqDao() { /* Required by IndexerDaoFactory */ }
 
   // Constructor for unit testing
-  RedisDao(String host, int port, String key, String username, String password) {
+  RabbitMqDao(String host, int port, String key, String username, String password) {
     init(host, port, key, username, password);
   }
 
@@ -54,30 +54,38 @@ public class RedisDao extends AbstractLogstashIndexerDao {
     super.init(host, port, key, username, password);
 
     if (StringUtils.isBlank(key)) {
-      throw new IllegalArgumentException("redis key is required");
+      throw new IllegalArgumentException("rabbit queue name is required");
     }
 
-    // The JedisPool must be a singleton
+    // The ConnectionFactory must be a singleton
     // We assume this is used as a singleton as well
     // Calling this method means the configuration has changed and the pool must be re-initialized
-    pool = new JedisPool(new JedisPoolConfig(), host, port);
+    pool = new ConnectionFactory();
+    pool.setHost(host);
+    pool.setPort(port);
+
+    if (!StringUtils.isBlank(username) && !StringUtils.isBlank(password)) {
+      pool.setPassword(password);
+      pool.setUsername(username);
+    }
   }
 
   // @Override
   public long push(String data, PrintStream logger) {
-    Jedis jedis;
+    Connection connection = null;
+    Channel channel = null;
     try {
-      jedis = pool.getResource();
-      if (!StringUtils.isBlank(password)) {
-        jedis.auth(password);
-      }
+      connection = pool.newConnection();
+      channel = connection.createChannel();
 
-      jedis.connect();
-      long result = jedis.rpush(key, data);
-      jedis.disconnect();
+      channel.queueDeclare(key, true, false, false, null);
+      channel.basicPublish("", key, null, data.getBytes());
 
-      return result;
-    } catch (JedisException e) {
+      channel.close();
+      connection.close();
+
+      return 1;
+    } catch (IOException e) {
       logger.println(ExceptionUtils.getStackTrace(e));
     }
 
@@ -86,6 +94,6 @@ public class RedisDao extends AbstractLogstashIndexerDao {
 
   // @Override
   public IndexerType getIndexerType() {
-    return IndexerType.REDIS;
+    return IndexerType.RABBIT_MQ;
   }
 }

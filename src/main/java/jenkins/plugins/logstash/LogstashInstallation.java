@@ -66,6 +66,7 @@ public class LogstashInstallation extends ToolInstallation {
     public IndexerType type;
     public String host;
     public Integer port;
+    public String username;
     public String password;
     public String key;
 
@@ -101,7 +102,7 @@ public class LogstashInstallation extends ToolInstallation {
         return null;
       }
 
-      return IndexerDaoFactory.getInstance(type, host, port, key, password);
+      return IndexerDaoFactory.getInstance(type, host, port, key, username, password);
     }
 
     /*

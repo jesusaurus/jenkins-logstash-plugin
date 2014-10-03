@@ -40,9 +40,10 @@ abstract class AbstractLogstashIndexerDao implements LogstashIndexerDao {
   protected String host;
   protected int port;
   protected String key;
+  protected String username;
   protected String password;
 
-  void init(String host, int port, String key, String password) {
+  void init(String host, int port, String key, String username, String password) {
     this.host = host;
     this.port = port;
     this.key = key;
