@@ -1,47 +1,96 @@
 package jenkins.plugins.logstash;
 
-import jenkins.plugins.logstash.LogstashBuildWrapper.RedisBlock;
-import jenkins.plugins.logstash.LogstashBuildWrapper.BuildBlock;
-
-import hudson.Launcher;
-import hudson.model.AbstractBuild;
-import hudson.model.AbstractCIBase;
-import hudson.model.BuildListener;
-import hudson.model.Job;
-import hudson.model.Run;
-import hudson.model.StreamBuildListener;
-import hudson.remoting.LocalChannel;
-import hudson.util.AbstractTaskListener;
+import static org.junit.Assert.assertEquals;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
+import static org.mockito.Mockito.when;
 
 import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.OutputStream;
-import java.util.concurrent.AbstractExecutorService;
+import java.io.PrintStream;
 
-import org.junit.Assert;
+import jenkins.plugins.logstash.persistence.BuildData;
+import jenkins.plugins.logstash.persistence.LogstashIndexerDao;
+import jenkins.plugins.logstash.persistence.LogstashIndexerDao.IndexerType;
+import net.sf.json.JSONObject;
+
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.Matchers;
+import org.mockito.Mock;
+import org.mockito.runners.MockitoJUnitRunner;
 
-
+@SuppressWarnings("resource")
+@RunWith(MockitoJUnitRunner.class)
 public class LogstashOutputStreamTest {
 
-    LogstashOutputStream los;
-    ByteArrayOutputStream baos;
+  ByteArrayOutputStream buffer;
 
-    @Before
-    public void setUp() {
-        baos = new ByteArrayOutputStream();
-        los = new LogstashOutputStream(baos);
+  @Mock LogstashIndexerDao mockDao;
+  @Mock BuildData mockBuildData;
 
-        los.rBlock = new RedisBlock("host", "80", "0", "pass", "type", "key");
-        los.bBlock = new BuildBlock("job", "build", 0, "root job", 0);
-    }
+  @Before
+  public void before() {
+    when(mockDao.buildPayload(Matchers.any(BuildData.class), Matchers.anyString(), Matchers.anyListOf(String.class))).thenReturn(new JSONObject());
+    when(mockDao.push(Matchers.startsWith("{}"), Matchers.any(PrintStream.class))).thenReturn(1L);
+    when(mockDao.getIndexerType()).thenReturn(IndexerType.REDIS);
+    when(mockDao.getHost()).thenReturn("localhost");
+    when(mockDao.getPort()).thenReturn(8080);
 
-    @Test
-    public void testEol() throws IOException {
-        String msg = new String("test");
-        los.eol(msg.getBytes(), msg.length());
-        Assert.assertEquals(baos.toString(), msg);
-    }
+    buffer = new ByteArrayOutputStream();
+  }
 
+  @After
+  public void after() throws Exception {
+    verifyNoMoreInteractions(mockDao);
+    verifyNoMoreInteractions(mockBuildData);
+    buffer.close();
+  }
+
+  @Test
+  public void constructorSuccess() throws Exception {
+    new LogstashOutputStream(buffer, mockDao, mockBuildData, "http://my-jenkins-url");
+
+    // Verify results
+    assertEquals("Results don't match", "", buffer.toString());
+  }
+
+  @Test
+  public void constructorSuccessNoDao() throws Exception {
+    // Unit under test
+    new LogstashOutputStream(buffer, null, mockBuildData, "http://my-jenkins-url");
+
+    // Verify results
+    assertEquals("Results don't match", "[logstash-plugin]: Unable to instantiate LogstashIndexerDao with current configuration.\n", buffer.toString());
+  }
+
+  @Test
+  public void eolSuccess() throws Exception {
+    LogstashOutputStream los = new LogstashOutputStream(buffer, mockDao, mockBuildData, "http://my-jenkins-url");
+    String msg = "test";
+    buffer.reset();
+
+    // Unit under test
+    los.eol(msg.getBytes(), msg.length());
+
+    // Verify results
+    assertEquals("Results don't match", msg, buffer.toString());
+
+    verify(mockDao).buildPayload(Matchers.eq(mockBuildData), Matchers.eq("http://my-jenkins-url"), Matchers.anyListOf(String.class));
+    verify(mockDao).push(Matchers.eq("{}"), Matchers.any(PrintStream.class));
+  }
+
+  @Test
+  public void eolSuccessNoDao() throws Exception {
+    LogstashOutputStream los = new LogstashOutputStream(buffer, null, mockBuildData, "http://my-jenkins-url");
+    String msg = "test";
+    buffer.reset();
+
+    // Unit under test
+    los.eol(msg.getBytes(), msg.length());
+
+    // Verify results
+    assertEquals("Results don't match", msg, buffer.toString());
+  }
 }

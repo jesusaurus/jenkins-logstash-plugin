@@ -1,127 +1,85 @@
 package jenkins.plugins.logstash;
 
-
-import jenkins.plugins.logstash.LogstashBuildWrapper;
-import jenkins.plugins.logstash.LogstashBuildWrapper.RedisBlock;
-import jenkins.plugins.logstash.LogstashBuildWrapper.BuildBlock;
-
+import hudson.console.ConsoleNote;
 import hudson.console.PlainTextConsoleOutputStream;
 
 import java.io.IOException;
 import java.io.OutputStream;
-import java.io.PrintWriter;
-import java.io.StringWriter;
+import java.io.PrintStream;
+import java.util.Arrays;
 
+import jenkins.plugins.logstash.persistence.BuildData;
+import jenkins.plugins.logstash.persistence.LogstashIndexerDao;
 import net.sf.json.JSONObject;
 
-import redis.clients.jedis.Jedis;
-
-
+/**
+ * Output stream that writes each line to the provided delegate output stream
+ * and also sends it to an indexer for logstash to consume.
+ *
+ * @author K Jonathan Harker
+ * @author Rusty Gerard
+ */
 public class LogstashOutputStream extends PlainTextConsoleOutputStream {
 
-    protected OutputStream delegate;
+  protected OutputStream delegate;
+  protected LogstashIndexerDao dao;
+  protected BuildData buildData;
+  protected String jenkinsUrl;
+  protected boolean connFailed = false;
 
-    protected boolean connFailed;
-    protected Jedis jedis;
+  public LogstashOutputStream(OutputStream delegate, LogstashIndexerDao dao, BuildData buildData, String jenkinsUrl) {
+    super(delegate);
+    this.delegate = delegate;
+    this.dao = dao;
+    this.buildData = buildData;
+    this.jenkinsUrl = jenkinsUrl;
 
-    protected RedisBlock rBlock;
-    protected BuildBlock bBlock;
+    if (dao == null) {
+      String msg = "[logstash-plugin]: Unable to instantiate LogstashIndexerDao with current configuration.\n";
 
-    public LogstashOutputStream(OutputStream d) {
-        super(d);
-        delegate = d;
-
-        connFailed = false;
-        jedis = null;
+      try {
+        delegate.write(msg.getBytes());
+      } catch (IOException e) {
+        e.printStackTrace();
+      }
     }
+  }
 
-    public boolean connect() {
-        boolean result;
-        try {
-            int port = (int)Integer.parseInt(rBlock.port);
-            jedis = new Jedis(rBlock.host, port);
+  @Override
+  protected void eol(byte[] b, int len) throws IOException {
+    delegate.write(b, 0, len);
+    delegate.flush();
 
-            if (rBlock.pass != null && !rBlock.pass.isEmpty()) {
-                jedis.auth(rBlock.pass);
-            }
+    String line = new String(b, 0, len).trim();
+    line = ConsoleNote.removeNotes(line);
 
-            int numb = (int)Integer.parseInt(rBlock.numb);
-            if (numb != 0) {
-               jedis.select(numb);
-            }
-            result = true;
-        } catch (java.lang.Throwable t) {
-            result = false;
-            jedis = null;
-            connFailed = true;
+    if (!line.isEmpty() && dao != null && !connFailed) {
+      JSONObject payload = dao.buildPayload(buildData, jenkinsUrl, Arrays.asList(line));
+      long result = dao.push(payload.toString(), new PrintStream(delegate));
 
-            StringWriter s = new StringWriter();
-            PrintWriter p = new PrintWriter(s);
-            t.printStackTrace(p);
-            String error = "Unable to connect to redis: " + s.toString() + "\n";
-
-            try {
-                delegate.write(error.getBytes());
-                delegate.flush();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
-        return result;
-    }
-
-    @Override
-    protected void eol(byte[] b, int len) throws IOException {
-        delegate.write(b, 0, len);
+      if (result < 0) {
+        String msg = "[logstash-plugin]: Failed to send log data to " + dao.getIndexerType() + ":" + dao.getHost() + ":" + dao.getPort() + ".\n";
+        connFailed = true;
+        delegate.write(msg.getBytes());
         delegate.flush();
-
-        if (rBlock != null && bBlock != null) {
-            String line = new String(b, 0, len).trim();
-
-            if (jedis != null && !line.isEmpty() && !connFailed) {
-                String blob = makeJson(line).toString();
-                jedis.rpush(rBlock.key, blob);
-            }
-        }
+      }
     }
+  }
 
-    protected JSONObject makeJson(String line) {
-        if (rBlock == null || bBlock == null) {
-            return null;
-        }
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  public void flush() throws IOException {
+    delegate.flush();
+  }
 
-        JSONObject fields = new JSONObject();
-        fields.put("logsource", rBlock.type);
-        fields.put("program", "jenkins");
-        fields.put("job", bBlock.jobName);
-        fields.put("build", bBlock.buildNum);
-        fields.put("node", bBlock.buildHost);
-        fields.put("root-job", bBlock.rootJobName);
-        fields.put("root-build", bBlock.rootBuildNum);
-
-        JSONObject json = new JSONObject();
-        json.put("@fields", fields);
-        json.put("@type", rBlock.type);
-        json.put("@message", line);
-        json.put("@source_host", new String("jenkins"));
-
-        return json;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void flush() throws IOException {
-        delegate.flush();
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void close() throws IOException {
-        delegate.close();
-        super.close();
-    }
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  public void close() throws IOException {
+    delegate.close();
+    super.close();
+  }
 }

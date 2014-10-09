@@ -3,6 +3,9 @@ Jenkins Logstash Plugin
 
 This plugin adds support for sending a job's console log to Logstash via Redis.
 
+* see [Jenkins wiki](https://wiki.jenkins-ci.org/display/JENKINS/Logstash+Plugin) for detailed feature descriptions
+* use [JIRA](https://issues.jenkins-ci.org) to report issues / feature requests
+
 Install
 =======
 
@@ -16,7 +19,8 @@ Configure
 
 Currently supported methods of input/output:
 
-* redis {format => 'json_event'}
+* Redis {format => 'json_event'}
+* RabbitMQ {mechanism => PLAIN}
 
 License
 =======
@@ -29,3 +33,10 @@ Contributing
 * Fork the project on [Github](https://github.com/jenkinsci/logstash-plugin)
 * Make your feature addition or bug fix, write tests, commit.
 * Send me a pull request. Bonus points for topic branches.
+
+Adding support for new indexers
+-------------------------------
+
+* Create a new class in the package `jenkins.plugins.logstash.persistence` that extends `AbstractLogstashIndexerDao`
+* Add a new entry to the enum `IndexerType`
+* Add a new mapping to the `INDEXER_MAP` in `IndexerDaoFactory`
