@@ -4,7 +4,6 @@ import static net.sf.json.test.JSONAssert.assertEquals;
 import hudson.model.Result;
 
 import java.util.Collections;
-import java.util.GregorianCalendar;
 import java.util.Map;
 
 import net.sf.json.JSONObject;
@@ -56,7 +55,7 @@ public class BuildDataTest {
     buildData.setRootBuildNum(456);
     buildData.setRootProjectDisplayName("ROOT PROJECT DISPLAY NAME");
     buildData.setRootProjectName("ROOT PROJECT NAME");
-    buildData.setTimestamp(new GregorianCalendar(2000, 1, 1));
+    buildData.timestamp = "2000-02-01T00:00:00-0800";
     buildData.setUrl("http://localhost:8080/jenkins/jobs/PROJECT_NAME/123");
 
     return buildData;
