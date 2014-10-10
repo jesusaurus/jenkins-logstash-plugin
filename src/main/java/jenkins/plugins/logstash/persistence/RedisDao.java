@@ -63,7 +63,7 @@ public class RedisDao extends AbstractLogstashIndexerDao {
     pool = new JedisPool(new JedisPoolConfig(), host, port);
   }
 
-  // @Override
+  @Override
   public long push(String data, PrintStream logger) {
     Jedis jedis;
     try {
@@ -84,7 +84,7 @@ public class RedisDao extends AbstractLogstashIndexerDao {
     return -1;
   }
 
-  // @Override
+  @Override
   public IndexerType getIndexerType() {
     return IndexerType.REDIS;
   }

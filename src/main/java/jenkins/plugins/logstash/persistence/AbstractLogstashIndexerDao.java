@@ -54,7 +54,7 @@ abstract class AbstractLogstashIndexerDao implements LogstashIndexerDao {
     }
   }
 
-  // @Override
+  @Override
   public JSONObject buildPayload(BuildData buildData, String jenkinsUrl, List<String> logLines) {
     JSONObject payload = new JSONObject();
     payload.put("data", buildData.toJson());
@@ -67,12 +67,12 @@ abstract class AbstractLogstashIndexerDao implements LogstashIndexerDao {
     return payload;
   }
 
-  // @Override
+  @Override
   public String getHost() {
     return host;
   }
 
-  // @Override
+  @Override
   public int getPort() {
     return port;
   }

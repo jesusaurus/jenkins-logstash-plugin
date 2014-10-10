@@ -70,7 +70,7 @@ public class RabbitMqDao extends AbstractLogstashIndexerDao {
     }
   }
 
-  // @Override
+  @Override
   public long push(String data, PrintStream logger) {
     Connection connection = null;
     Channel channel = null;
@@ -92,7 +92,7 @@ public class RabbitMqDao extends AbstractLogstashIndexerDao {
     return -1;
   }
 
-  // @Override
+  @Override
   public IndexerType getIndexerType() {
     return IndexerType.RABBIT_MQ;
   }
