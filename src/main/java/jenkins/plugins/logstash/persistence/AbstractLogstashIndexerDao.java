@@ -59,9 +59,10 @@ abstract class AbstractLogstashIndexerDao implements LogstashIndexerDao {
     JSONObject payload = new JSONObject();
     payload.put("data", buildData.toJson());
     payload.put("message", logLines);
-    payload.put("application", "jenkins");
+    payload.put("source", "jenkins");
     payload.put("source_host", jenkinsUrl);
     payload.put("@timestamp", buildData.getTimestamp());
+    payload.put("version", 1);
 
     return payload;
   }
