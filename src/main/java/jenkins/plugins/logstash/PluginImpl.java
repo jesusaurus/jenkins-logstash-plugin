@@ -28,9 +28,9 @@ import hudson.Plugin;
 import java.util.logging.Logger;
 
 public class PluginImpl extends Plugin {
-	private final static Logger LOG = Logger.getLogger(PluginImpl.class.getName());
+  private final static Logger LOG = Logger.getLogger(PluginImpl.class.getName());
 
-	public void start() throws Exception {
-		LOG.info("Logstash: a logstash agent to send jenkins logs to a logstash indexer.");
-	}
+  public void start() throws Exception {
+    LOG.info("Logstash: a logstash agent to send jenkins logs to a logstash indexer.");
+  }
 }

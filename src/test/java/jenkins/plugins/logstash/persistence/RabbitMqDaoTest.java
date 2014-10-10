@@ -107,7 +107,7 @@ public class RabbitMqDaoTest {
   public void pushFailUnauthorized() throws Exception {
     // Initialize mocks
     when(mockPool.newConnection()).thenThrow(new AuthenticationFailureException("Not authorized"));
-    
+
     // Unit under test
     long result = dao.push("", mockLogger);
 

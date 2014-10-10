@@ -90,11 +90,11 @@ public final class IndexerDaoFactory {
       return true;
     }
 
-    boolean matches = (instance.getIndexerType() == type) && 
-                      StringUtils.equals(instance.host, host) && 
-                      (instance.port == port) && 
-                      StringUtils.equals(instance.key, key) && 
-                      StringUtils.equals(instance.password, password);
+    boolean matches = (instance.getIndexerType() == type) &&
+        StringUtils.equals(instance.host, host) &&
+        (instance.port == port) &&
+        StringUtils.equals(instance.key, key) &&
+        StringUtils.equals(instance.password, password);
     return !matches;
   }
 }
