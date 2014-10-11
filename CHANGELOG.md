@@ -1,3 +1,12 @@
+1.0.0
+-----
+* Use JedisPool to fix concurrency issue with multiple running jobs
+* Update Logstash event schema (https://logstash.jira.com/browse/LOGSTASH-675)
+* Add more build data to the payload (build parameters, Jenkins ID, etc.)
+* Move connection info into a global config shared between all jobs
+* Add a post-build action to send multiple log lines as a single event
+* Add support for RabbitMQ
+
 0.7.4
 -----
 
