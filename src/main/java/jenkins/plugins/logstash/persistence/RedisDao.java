@@ -32,6 +32,7 @@ import org.apache.commons.lang.exception.ExceptionUtils;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
 import redis.clients.jedis.JedisPoolConfig;
+import redis.clients.jedis.exceptions.JedisConnectionException;
 import redis.clients.jedis.exceptions.JedisException;
 
 /**
@@ -65,7 +66,8 @@ public class RedisDao extends AbstractLogstashIndexerDao {
 
   @Override
   public long push(String data, PrintStream logger) {
-    Jedis jedis;
+    Jedis jedis = null;
+    boolean connectionBroken = false;
     try {
       jedis = pool.getResource();
       if (!StringUtils.isBlank(password)) {
@@ -79,6 +81,16 @@ public class RedisDao extends AbstractLogstashIndexerDao {
       return result;
     } catch (JedisException e) {
       logger.println(ExceptionUtils.getStackTrace(e));
+
+      connectionBroken = (e instanceof JedisConnectionException);
+    } finally {
+      if (jedis != null) {
+        if (connectionBroken) {
+          pool.returnBrokenResource(jedis);
+        } else {
+          pool.returnResource(jedis);
+        }
+      }
     }
 
     return -1;
