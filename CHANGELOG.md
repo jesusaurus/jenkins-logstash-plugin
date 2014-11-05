@@ -1,3 +1,7 @@
+1.0.1
+-----
+* Return Jedis connection to pool immediately after use
+
 1.0.0
 -----
 * Use JedisPool to fix concurrency issue with multiple running jobs
@@ -35,4 +39,3 @@
 =====
 
 * Initial working release.
-
