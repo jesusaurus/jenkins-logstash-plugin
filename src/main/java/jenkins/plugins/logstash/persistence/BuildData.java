@@ -26,12 +26,15 @@ package jenkins.plugins.logstash.persistence;
 
 import hudson.model.Result;
 import hudson.model.AbstractBuild;
+import hudson.model.Node;
 
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.Map;
+
+import org.apache.commons.lang.StringUtils;
 
 import net.sf.json.JSONObject;
 
@@ -76,12 +79,13 @@ public class BuildData {
     description = build.getDescription();
     url = build.getUrl();
 
-    if (build.getBuiltOn() == null || build.getBuiltOn().getDisplayName().isEmpty()) {
+    Node node = build.getBuiltOn();
+    if (node == null) {
       buildHost = "master";
       buildLabel = "master";
     } else {
-      buildHost = build.getBuiltOn().getDisplayName();
-      buildLabel = build.getBuiltOn().getLabelString();
+      buildHost = StringUtils.isBlank(node.getDisplayName()) ? "master" : node.getDisplayName();
+      buildLabel = StringUtils.isBlank(node.getLabelString()) ? "master" : node.getLabelString();
     }
 
     buildNum = build.getNumber();

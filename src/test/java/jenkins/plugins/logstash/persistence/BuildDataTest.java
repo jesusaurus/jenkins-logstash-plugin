@@ -6,6 +6,7 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 import hudson.model.Result;
 import hudson.model.AbstractBuild;
+import hudson.model.Node;
 import hudson.model.Project;
 
 import java.util.Arrays;
@@ -33,6 +34,7 @@ public class BuildDataTest {
 
   @Mock AbstractBuild mockBuild;
   @Mock Project mockProject;
+  @Mock Node mockNode;
   @Mock Date mockDate;
   @Mock GregorianCalendar mockCalendar;
 
@@ -74,6 +76,74 @@ public class BuildDataTest {
     // Verify the rest of the results
     Assert.assertEquals("Incorrect buildHost", "master", buildData.getBuildHost());
     Assert.assertEquals("Incorrect buildLabel", "master", buildData.getBuildLabel());
+
+    verify(mockBuild).getId();
+    verify(mockBuild, times(2)).getResult();
+    verify(mockBuild, times(2)).getParent();
+    verify(mockBuild, times(2)).getDisplayName();
+    verify(mockBuild).getFullDisplayName();
+    verify(mockBuild).getDescription();
+    verify(mockBuild).getUrl();
+    verify(mockBuild).getBuiltOn();
+    verify(mockBuild, times(2)).getNumber();
+    verify(mockBuild).getTimestamp();
+    verify(mockBuild, times(3)).getRootBuild();
+    verify(mockBuild).getBuildVariables();
+
+    verify(mockProject, times(2)).getName();
+
+    verify(mockDate).getTime();
+  }
+
+  @Test
+  public void constructorSuccessBuiltOnMaster() throws Exception {
+    when(mockBuild.getBuiltOn()).thenReturn(mockNode);
+
+    when(mockNode.getDisplayName()).thenReturn("Jenkins");
+    when(mockNode.getLabelString()).thenReturn("");
+
+    BuildData buildData = new BuildData(mockBuild, mockDate);
+
+    // build.getDuration() is always 0 in Notifiers
+    Assert.assertEquals("Incorrect buildDuration", 60L, buildData.getBuildDuration());
+
+    // Verify the rest of the results
+    Assert.assertEquals("Incorrect buildHost", "Jenkins", buildData.getBuildHost());
+    Assert.assertEquals("Incorrect buildLabel", "master", buildData.getBuildLabel());
+
+    verify(mockBuild).getId();
+    verify(mockBuild, times(2)).getResult();
+    verify(mockBuild, times(2)).getParent();
+    verify(mockBuild, times(2)).getDisplayName();
+    verify(mockBuild).getFullDisplayName();
+    verify(mockBuild).getDescription();
+    verify(mockBuild).getUrl();
+    verify(mockBuild).getBuiltOn();
+    verify(mockBuild, times(2)).getNumber();
+    verify(mockBuild).getTimestamp();
+    verify(mockBuild, times(3)).getRootBuild();
+    verify(mockBuild).getBuildVariables();
+
+    verify(mockProject, times(2)).getName();
+
+    verify(mockDate).getTime();
+  }
+
+  @Test
+  public void constructorSuccessBuiltOnSlave() throws Exception {
+    when(mockBuild.getBuiltOn()).thenReturn(mockNode);
+
+    when(mockNode.getDisplayName()).thenReturn("Test Slave 01");
+    when(mockNode.getLabelString()).thenReturn("Test Slave");
+
+    BuildData buildData = new BuildData(mockBuild, mockDate);
+
+    // build.getDuration() is always 0 in Notifiers
+    Assert.assertEquals("Incorrect buildDuration", 60L, buildData.getBuildDuration());
+
+    // Verify the rest of the results
+    Assert.assertEquals("Incorrect buildHost", "Test Slave 01", buildData.getBuildHost());
+    Assert.assertEquals("Incorrect buildLabel", "Test Slave", buildData.getBuildLabel());
 
     verify(mockBuild).getId();
     verify(mockBuild, times(2)).getResult();
