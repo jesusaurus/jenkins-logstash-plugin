@@ -1,40 +1,107 @@
 package jenkins.plugins.logstash.persistence;
 
-import static net.sf.json.test.JSONAssert.assertEquals;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
+import static org.mockito.Mockito.when;
 import hudson.model.Result;
+import hudson.model.AbstractBuild;
+import hudson.model.Project;
 
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.Date;
+import java.util.GregorianCalendar;
 import java.util.Map;
 
 import net.sf.json.JSONObject;
+import net.sf.json.test.JSONAssert;
 
+import org.junit.After;
+import org.junit.Assert;
+import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.Mock;
+import org.mockito.runners.MockitoJUnitRunner;
 
+@SuppressWarnings("rawtypes")
+@RunWith(MockitoJUnitRunner.class)
 public class BuildDataTest {
 
-  static final String EMPTY_STRING = "{\"buildNum\":0,\"buildDuration\":0,\"rootBuildNum\":0}";
   static final String FULL_STRING = "{\"id\":\"TEST_JOB_123\",\"result\":\"SUCCESS\",\"projectName\":\"PROJECT_NAME\",\"displayName\":\"DISPLAY NAME\",\"fullDisplayName\":\"FULL DISPLAY NAME\",\"description\":\"DESCRIPTION\",\"url\":\"http://localhost:8080/jenkins/jobs/PROJECT_NAME/123\",\"buildHost\":\"http://localhost:8080/jenkins\",\"buildLabel\":\"master\",\"buildNum\":123,\"buildDuration\":100,\"timestamp\":\"2000-02-01T00:00:00-0800\",\"rootProjectName\":\"ROOT PROJECT NAME\",\"rootProjectDisplayName\":\"ROOT PROJECT DISPLAY NAME\",\"rootBuildNum\":456,\"buildVariables\":{}}";
 
-  @Test
-  public void toJsonEmptySuccess() throws Exception {
-    BuildData buildData = new BuildData();
+  @Mock AbstractBuild mockBuild;
+  @Mock Project mockProject;
+  @Mock Date mockDate;
+  @Mock GregorianCalendar mockCalendar;
 
-    // Unit under test
-    JSONObject result = buildData.toJson();
+  @Before
+  public void before() throws Exception {
+    when(mockBuild.getResult()).thenReturn(Result.SUCCESS);
+    when(mockBuild.getDisplayName()).thenReturn("BuildDataTest");
+    when(mockBuild.getFullDisplayName()).thenReturn("BuildDataTest #123456");
+    when(mockBuild.getDescription()).thenReturn("Mock project for testing BuildData");
+    when(mockBuild.getProject()).thenReturn(mockProject);
+    when(mockBuild.getNumber()).thenReturn(123456);
+    when(mockBuild.getDuration()).thenReturn(0L);
+    when(mockBuild.getTimestamp()).thenReturn(mockCalendar);
+    when(mockBuild.getRootBuild()).thenReturn(mockBuild);
+    when(mockBuild.getBuildVariables()).thenReturn(Collections.emptyMap());
+    when(mockBuild.getLog(3)).thenReturn(Arrays.asList("line 1", "line 2", "line 3"));
 
-    // Verify results
-    assertEquals("Results don't match", JSONObject.fromObject(EMPTY_STRING), result);
+    when(mockProject.getName()).thenReturn("BuildDataTest");
+
+    when(mockDate.getTime()).thenReturn(60L);
+  }
+
+  @After
+  public void after() throws Exception {
+    verifyNoMoreInteractions(mockBuild);
+    verifyNoMoreInteractions(mockProject);
+    verifyNoMoreInteractions(mockDate);
   }
 
   @Test
-  public void toJsonFullSuccess() throws Exception {
+  public void constructorSuccessBuiltOnNull() throws Exception {
+    when(mockBuild.getBuiltOn()).thenReturn(null);
+
+    BuildData buildData = new BuildData(mockBuild, mockDate);
+
+    // build.getDuration() is always 0 in Notifiers
+    Assert.assertEquals("Incorrect buildDuration", 60L, buildData.getBuildDuration());
+
+    // Verify the rest of the results
+    Assert.assertEquals("Incorrect buildHost", "master", buildData.getBuildHost());
+    Assert.assertEquals("Incorrect buildLabel", "master", buildData.getBuildLabel());
+
+    verify(mockBuild).getId();
+    verify(mockBuild, times(2)).getResult();
+    verify(mockBuild, times(2)).getParent();
+    verify(mockBuild, times(2)).getDisplayName();
+    verify(mockBuild).getFullDisplayName();
+    verify(mockBuild).getDescription();
+    verify(mockBuild).getUrl();
+    verify(mockBuild).getBuiltOn();
+    verify(mockBuild, times(2)).getNumber();
+    verify(mockBuild).getTimestamp();
+    verify(mockBuild, times(3)).getRootBuild();
+    verify(mockBuild).getBuildVariables();
+
+    verify(mockProject, times(2)).getName();
+
+    verify(mockDate).getTime();
+  }
+
+  @Test
+  public void toJsonSuccess() throws Exception {
     BuildData buildData = makeFullBuildData();
 
     // Unit under test
     JSONObject result = buildData.toJson();
 
     // Verify results
-    assertEquals("Results don't match", JSONObject.fromObject(FULL_STRING), result);
+    JSONAssert.assertEquals("Results don't match", JSONObject.fromObject(FULL_STRING), result);
   }
 
   BuildData makeFullBuildData() {

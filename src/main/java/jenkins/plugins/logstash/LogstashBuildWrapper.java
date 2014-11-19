@@ -34,6 +34,7 @@ import hudson.tasks.BuildWrapperDescriptor;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.util.Date;
 
 import jenkins.model.Jenkins;
 import jenkins.plugins.logstash.persistence.BuildData;
@@ -78,7 +79,7 @@ public class LogstashBuildWrapper extends BuildWrapper {
       e.printStackTrace();
     }
 
-    BuildData buildData = new BuildData(build);
+    BuildData buildData = new BuildData(build, new Date());
     String jenkinsUrl = getJenkinsUrl();
     outputStream = new LogstashOutputStream(logger, dao, buildData, jenkinsUrl);
 

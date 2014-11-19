@@ -65,7 +65,7 @@ public class LogstashNotifierTest {
     when(mockBuild.getProject()).thenReturn(mockProject);
     when(mockBuild.getBuiltOn()).thenReturn(null);
     when(mockBuild.getNumber()).thenReturn(123456);
-    when(mockBuild.getDuration()).thenReturn(60L);
+    when(mockBuild.getDuration()).thenReturn(0L);
     when(mockBuild.getTimestamp()).thenReturn(new GregorianCalendar());
     when(mockBuild.getRootBuild()).thenReturn(mockBuild);
     when(mockBuild.getBuildVariables()).thenReturn(Collections.emptyMap());
@@ -111,7 +111,6 @@ public class LogstashNotifierTest {
     verify(mockBuild).getUrl();
     verify(mockBuild).getBuiltOn();
     verify(mockBuild, times(2)).getNumber();
-    verify(mockBuild).getDuration();
     verify(mockBuild).getTimestamp();
     verify(mockBuild, times(3)).getRootBuild();
     verify(mockBuild).getBuildVariables();
@@ -177,7 +176,6 @@ public class LogstashNotifierTest {
     verify(mockBuild).getUrl();
     verify(mockBuild).getBuiltOn();
     verify(mockBuild, times(2)).getNumber();
-    verify(mockBuild).getDuration();
     verify(mockBuild).getTimestamp();
     verify(mockBuild, times(3)).getRootBuild();
     verify(mockBuild).getBuildVariables();
@@ -214,7 +212,6 @@ public class LogstashNotifierTest {
     verify(mockBuild).getUrl();
     verify(mockBuild).getBuiltOn();
     verify(mockBuild, times(2)).getNumber();
-    verify(mockBuild).getDuration();
     verify(mockBuild).getTimestamp();
     verify(mockBuild, times(3)).getRootBuild();
     verify(mockBuild).getBuildVariables();
@@ -254,7 +251,6 @@ public class LogstashNotifierTest {
     verify(mockBuild).getUrl();
     verify(mockBuild).getBuiltOn();
     verify(mockBuild, times(2)).getNumber();
-    verify(mockBuild).getDuration();
     verify(mockBuild).getTimestamp();
     verify(mockBuild, times(3)).getRootBuild();
     verify(mockBuild).getBuildVariables();

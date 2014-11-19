@@ -36,6 +36,7 @@ import hudson.tasks.Publisher;
 
 import java.io.IOException;
 import java.util.Collections;
+import java.util.Date;
 import java.util.List;
 
 import jenkins.model.Jenkins;
@@ -103,7 +104,7 @@ public class LogstashNotifier extends Notifier {
       // Continue on without log information
     }
 
-    BuildData buildData = new BuildData(build);
+    BuildData buildData = new BuildData(build, new Date());
     JSONObject payload = dao.buildPayload(buildData, jenkinsUrl, logLines);
     long result = dao.push(payload.toString(), listener.getLogger());
     if (result < 0) {

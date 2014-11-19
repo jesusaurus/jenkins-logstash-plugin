@@ -30,6 +30,7 @@ import hudson.model.AbstractBuild;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
+import java.util.Date;
 import java.util.Map;
 
 import net.sf.json.JSONObject;
@@ -66,7 +67,7 @@ public class BuildData {
 
   BuildData() {}
 
-  public BuildData(AbstractBuild<?, ?> build) {
+  public BuildData(AbstractBuild<?, ?> build, Date currentTime) {
     result = build.getResult() == null ? null : build.getResult().toString();
     id = build.getId();
     projectName = build.getProject().getName();
@@ -84,7 +85,8 @@ public class BuildData {
     }
 
     buildNum = build.getNumber();
-    buildDuration = build.getDuration();
+    // build.getDuration() is always 0 in Notifiers
+    buildDuration = currentTime.getTime() - build.getStartTimeInMillis();
     timestamp = DATE_FORMATTER.format(build.getTimestamp().getTime());
     rootProjectName = build.getRootBuild().getProject().getName();
     rootProjectDisplayName = build.getRootBuild().getDisplayName();
