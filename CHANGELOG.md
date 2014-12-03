@@ -1,3 +1,9 @@
+1.0.2
+-----
+* Add test results to the payload
+* Removed redundant field "version" from payload
+* Fixed build duration (build duration was always 0)
+
 1.0.1
 -----
 * Return Jedis connection to pool immediately after use
