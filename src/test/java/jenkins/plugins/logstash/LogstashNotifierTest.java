@@ -11,6 +11,7 @@ import hudson.model.BuildListener;
 import hudson.model.Result;
 import hudson.model.AbstractBuild;
 import hudson.model.Project;
+import hudson.tasks.test.AbstractTestResultAction;
 
 import java.io.IOException;
 import java.io.PrintStream;
@@ -50,6 +51,7 @@ public class LogstashNotifierTest {
   }
 
   @Mock AbstractBuild mockBuild;
+  @Mock AbstractTestResultAction mockTestResultAction;
   @Mock Project mockProject;
   @Mock Launcher mockLauncher;
   @Mock BuildListener mockListener;
@@ -70,6 +72,12 @@ public class LogstashNotifierTest {
     when(mockBuild.getRootBuild()).thenReturn(mockBuild);
     when(mockBuild.getBuildVariables()).thenReturn(Collections.emptyMap());
     when(mockBuild.getLog(3)).thenReturn(Arrays.asList("line 1", "line 2", "line 3"));
+    when(mockBuild.getTestResultAction()).thenReturn(mockTestResultAction);
+
+    when(mockTestResultAction.getTotalCount()).thenReturn(0);
+    when(mockTestResultAction.getSkipCount()).thenReturn(0);
+    when(mockTestResultAction.getFailCount()).thenReturn(0);
+    when(mockTestResultAction.getFailedTests()).thenReturn(Collections.emptyList());
 
     when(mockProject.getName()).thenReturn("LogstashNotifierTest");
 
@@ -87,6 +95,7 @@ public class LogstashNotifierTest {
   @After
   public void after() throws Exception {
     verifyNoMoreInteractions(mockBuild);
+    verifyNoMoreInteractions(mockTestResultAction);
     verifyNoMoreInteractions(mockProject);
     verifyNoMoreInteractions(mockLauncher);
     verifyNoMoreInteractions(mockListener);
@@ -109,12 +118,18 @@ public class LogstashNotifierTest {
     verify(mockBuild).getFullDisplayName();
     verify(mockBuild).getDescription();
     verify(mockBuild).getUrl();
+    verify(mockBuild).getTestResultAction();
     verify(mockBuild).getBuiltOn();
     verify(mockBuild, times(2)).getNumber();
     verify(mockBuild).getTimestamp();
     verify(mockBuild, times(3)).getRootBuild();
     verify(mockBuild).getBuildVariables();
     verify(mockBuild).getLog(3);
+
+    verify(mockTestResultAction).getTotalCount();
+    verify(mockTestResultAction).getSkipCount();
+    verify(mockTestResultAction).getFailCount();
+    verify(mockTestResultAction, times(2)).getFailedTests();
 
     verify(mockProject, times(2)).getName();
 
@@ -159,7 +174,7 @@ public class LogstashNotifierTest {
   @Test
   public void performSuccessNoLogData() throws Exception {
     // Initialize mocks
-    when(mockBuild.getLog(3)).thenThrow(new IOException("Unable to read log file"));
+    when(mockBuild.getLog(Matchers.anyInt())).thenThrow(new IOException("Unable to read log file"));
 
     // Unit under test
     boolean result = notifier.perform(mockBuild, mockLauncher, mockListener);
@@ -174,6 +189,49 @@ public class LogstashNotifierTest {
     verify(mockBuild).getFullDisplayName();
     verify(mockBuild).getDescription();
     verify(mockBuild).getUrl();
+    verify(mockBuild).getTestResultAction();
+    verify(mockBuild).getBuiltOn();
+    verify(mockBuild, times(2)).getNumber();
+    verify(mockBuild).getTimestamp();
+    verify(mockBuild, times(3)).getRootBuild();
+    verify(mockBuild).getBuildVariables();
+    verify(mockBuild).getLog(3);
+
+    verify(mockTestResultAction).getTotalCount();
+    verify(mockTestResultAction).getSkipCount();
+    verify(mockTestResultAction).getFailCount();
+    verify(mockTestResultAction, times(2)).getFailedTests();
+
+    verify(mockProject, times(2)).getName();
+
+    verify(mockListener, times(3)).getLogger();
+
+    verify(mockLogger).println("[logstash-plugin]: Unable to serialize log data.");
+    verify(mockLogger).println(Matchers.startsWith("java.io.IOException: Unable to read log file"));
+
+    verify(mockDao).buildPayload(Matchers.any(BuildData.class), Matchers.eq("http://my-jenkins-url"), Matchers.anyListOf(String.class));
+    verify(mockDao).push("{}", mockLogger);
+  }
+
+  @Test
+  public void performSuccessNoTestResults() throws Exception {
+    // Initialize mocks
+    when(mockBuild.getTestResultAction()).thenReturn(null);
+
+    // Unit under test
+    boolean result = notifier.perform(mockBuild, mockLauncher, mockListener);
+
+    // Verify results
+    assertTrue("Build should not be marked as failure", result);
+
+    verify(mockBuild).getId();
+    verify(mockBuild, times(2)).getResult();
+    verify(mockBuild, times(2)).getParent();
+    verify(mockBuild, times(2)).getDisplayName();
+    verify(mockBuild).getFullDisplayName();
+    verify(mockBuild).getDescription();
+    verify(mockBuild).getUrl();
+    verify(mockBuild).getTestResultAction();
     verify(mockBuild).getBuiltOn();
     verify(mockBuild, times(2)).getNumber();
     verify(mockBuild).getTimestamp();
@@ -183,10 +241,7 @@ public class LogstashNotifierTest {
 
     verify(mockProject, times(2)).getName();
 
-    verify(mockListener, times(3)).getLogger();
-
-    verify(mockLogger).println("[logstash-plugin]: Unable to serialize log data.");
-    verify(mockLogger).println(Matchers.startsWith("java.io.IOException: Unable to read log file"));
+    verify(mockListener).getLogger();
 
     verify(mockDao).buildPayload(Matchers.any(BuildData.class), Matchers.eq("http://my-jenkins-url"), Matchers.anyListOf(String.class));
     verify(mockDao).push("{}", mockLogger);
@@ -210,12 +265,18 @@ public class LogstashNotifierTest {
     verify(mockBuild).getFullDisplayName();
     verify(mockBuild).getDescription();
     verify(mockBuild).getUrl();
+    verify(mockBuild).getTestResultAction();
     verify(mockBuild).getBuiltOn();
     verify(mockBuild, times(2)).getNumber();
     verify(mockBuild).getTimestamp();
     verify(mockBuild, times(3)).getRootBuild();
     verify(mockBuild).getBuildVariables();
     verify(mockBuild).getLog(3);
+
+    verify(mockTestResultAction).getTotalCount();
+    verify(mockTestResultAction).getSkipCount();
+    verify(mockTestResultAction).getFailCount();
+    verify(mockTestResultAction, times(2)).getFailedTests();
 
     verify(mockProject, times(2)).getName();
 
@@ -249,12 +310,18 @@ public class LogstashNotifierTest {
     verify(mockBuild).getFullDisplayName();
     verify(mockBuild).getDescription();
     verify(mockBuild).getUrl();
+    verify(mockBuild).getTestResultAction();
     verify(mockBuild).getBuiltOn();
     verify(mockBuild, times(2)).getNumber();
     verify(mockBuild).getTimestamp();
     verify(mockBuild, times(3)).getRootBuild();
     verify(mockBuild).getBuildVariables();
     verify(mockBuild).getLog(3);
+
+    verify(mockTestResultAction).getTotalCount();
+    verify(mockTestResultAction).getSkipCount();
+    verify(mockTestResultAction).getFailCount();
+    verify(mockTestResultAction, times(2)).getFailedTests();
 
     verify(mockProject, times(2)).getName();
 

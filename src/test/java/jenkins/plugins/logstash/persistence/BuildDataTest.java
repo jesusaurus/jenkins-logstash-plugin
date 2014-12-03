@@ -8,6 +8,8 @@ import hudson.model.Result;
 import hudson.model.AbstractBuild;
 import hudson.model.Node;
 import hudson.model.Project;
+import hudson.tasks.test.AbstractTestResultAction;
+import hudson.tasks.test.TestResult;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -15,6 +17,7 @@ import java.util.Date;
 import java.util.GregorianCalendar;
 import java.util.Map;
 
+import jenkins.plugins.logstash.persistence.BuildData.TestData;
 import net.sf.json.JSONObject;
 import net.sf.json.test.JSONAssert;
 
@@ -24,15 +27,17 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.runners.MockitoJUnitRunner;
 
 @SuppressWarnings("rawtypes")
 @RunWith(MockitoJUnitRunner.class)
 public class BuildDataTest {
 
-  static final String FULL_STRING = "{\"id\":\"TEST_JOB_123\",\"result\":\"SUCCESS\",\"projectName\":\"PROJECT_NAME\",\"displayName\":\"DISPLAY NAME\",\"fullDisplayName\":\"FULL DISPLAY NAME\",\"description\":\"DESCRIPTION\",\"url\":\"http://localhost:8080/jenkins/jobs/PROJECT_NAME/123\",\"buildHost\":\"http://localhost:8080/jenkins\",\"buildLabel\":\"master\",\"buildNum\":123,\"buildDuration\":100,\"timestamp\":\"2000-02-01T00:00:00-0800\",\"rootProjectName\":\"ROOT PROJECT NAME\",\"rootProjectDisplayName\":\"ROOT PROJECT DISPLAY NAME\",\"rootBuildNum\":456,\"buildVariables\":{}}";
+  static final String FULL_STRING = "{\"id\":\"TEST_JOB_123\",\"result\":\"SUCCESS\",\"projectName\":\"PROJECT_NAME\",\"displayName\":\"DISPLAY NAME\",\"fullDisplayName\":\"FULL DISPLAY NAME\",\"description\":\"DESCRIPTION\",\"url\":\"http://localhost:8080/jenkins/jobs/PROJECT_NAME/123\",\"buildHost\":\"http://localhost:8080/jenkins\",\"buildLabel\":\"master\",\"buildNum\":123,\"buildDuration\":100,\"timestamp\":\"2000-02-01T00:00:00-0800\",\"rootProjectName\":\"ROOT PROJECT NAME\",\"rootProjectDisplayName\":\"ROOT PROJECT DISPLAY NAME\",\"rootBuildNum\":456,\"buildVariables\":{},\"testResults\":{\"totalCount\":0,\"skipCount\":0,\"failCount\":0,\"failedTests\":[]}}";
 
   @Mock AbstractBuild mockBuild;
+  @Mock AbstractTestResultAction mockTestResultAction;
   @Mock Project mockProject;
   @Mock Node mockNode;
   @Mock Date mockDate;
@@ -51,6 +56,12 @@ public class BuildDataTest {
     when(mockBuild.getRootBuild()).thenReturn(mockBuild);
     when(mockBuild.getBuildVariables()).thenReturn(Collections.emptyMap());
     when(mockBuild.getLog(3)).thenReturn(Arrays.asList("line 1", "line 2", "line 3"));
+    when(mockBuild.getTestResultAction()).thenReturn(mockTestResultAction);
+
+    when(mockTestResultAction.getTotalCount()).thenReturn(0);
+    when(mockTestResultAction.getSkipCount()).thenReturn(0);
+    when(mockTestResultAction.getFailCount()).thenReturn(0);
+    when(mockTestResultAction.getFailedTests()).thenReturn(Collections.emptyList());
 
     when(mockProject.getName()).thenReturn("BuildDataTest");
 
@@ -60,6 +71,7 @@ public class BuildDataTest {
   @After
   public void after() throws Exception {
     verifyNoMoreInteractions(mockBuild);
+    verifyNoMoreInteractions(mockTestResultAction);
     verifyNoMoreInteractions(mockProject);
     verifyNoMoreInteractions(mockDate);
   }
@@ -84,11 +96,17 @@ public class BuildDataTest {
     verify(mockBuild).getFullDisplayName();
     verify(mockBuild).getDescription();
     verify(mockBuild).getUrl();
+    verify(mockBuild).getTestResultAction();
     verify(mockBuild).getBuiltOn();
     verify(mockBuild, times(2)).getNumber();
     verify(mockBuild).getTimestamp();
     verify(mockBuild, times(3)).getRootBuild();
     verify(mockBuild).getBuildVariables();
+
+    verify(mockTestResultAction).getTotalCount();
+    verify(mockTestResultAction).getSkipCount();
+    verify(mockTestResultAction).getFailCount();
+    verify(mockTestResultAction, times(2)).getFailedTests();
 
     verify(mockProject, times(2)).getName();
 
@@ -118,11 +136,17 @@ public class BuildDataTest {
     verify(mockBuild).getFullDisplayName();
     verify(mockBuild).getDescription();
     verify(mockBuild).getUrl();
+    verify(mockBuild).getTestResultAction();
     verify(mockBuild).getBuiltOn();
     verify(mockBuild, times(2)).getNumber();
     verify(mockBuild).getTimestamp();
     verify(mockBuild, times(3)).getRootBuild();
     verify(mockBuild).getBuildVariables();
+
+    verify(mockTestResultAction).getTotalCount();
+    verify(mockTestResultAction).getSkipCount();
+    verify(mockTestResultAction).getFailCount();
+    verify(mockTestResultAction, times(2)).getFailedTests();
 
     verify(mockProject, times(2)).getName();
 
@@ -152,6 +176,81 @@ public class BuildDataTest {
     verify(mockBuild).getFullDisplayName();
     verify(mockBuild).getDescription();
     verify(mockBuild).getUrl();
+    verify(mockBuild).getTestResultAction();
+    verify(mockBuild).getBuiltOn();
+    verify(mockBuild, times(2)).getNumber();
+    verify(mockBuild).getTimestamp();
+    verify(mockBuild, times(3)).getRootBuild();
+    verify(mockBuild).getBuildVariables();
+
+    verify(mockTestResultAction).getTotalCount();
+    verify(mockTestResultAction).getSkipCount();
+    verify(mockTestResultAction).getFailCount();
+    verify(mockTestResultAction, times(2)).getFailedTests();
+
+    verify(mockProject, times(2)).getName();
+
+    verify(mockDate).getTime();
+  }
+
+  @Test
+  public void constructorSuccessTestFailures() {
+    TestResult mockTestResult = Mockito.mock(hudson.tasks.test.TestResult.class);
+    when(mockTestResult.getSafeName()).thenReturn("Mock Test");
+
+    when(mockTestResultAction.getTotalCount()).thenReturn(123);
+    when(mockTestResultAction.getSkipCount()).thenReturn(0);
+    when(mockTestResultAction.getFailCount()).thenReturn(1);
+    when(mockTestResultAction.getFailedTests()).thenReturn(Arrays.asList(mockTestResult));
+
+    BuildData buildData = new BuildData(mockBuild, mockDate);
+
+    Assert.assertEquals("Incorrect test results", 123, buildData.testResults.totalCount);
+    Assert.assertEquals("Incorrect test results", 0, buildData.testResults.skipCount);
+    Assert.assertEquals("Incorrect test results", 1, buildData.testResults.failCount);
+
+    // Verify the rest of the results
+    verify(mockBuild).getId();
+    verify(mockBuild, times(2)).getResult();
+    verify(mockBuild, times(2)).getParent();
+    verify(mockBuild, times(2)).getDisplayName();
+    verify(mockBuild).getFullDisplayName();
+    verify(mockBuild).getDescription();
+    verify(mockBuild).getUrl();
+    verify(mockBuild).getTestResultAction();
+    verify(mockBuild).getBuiltOn();
+    verify(mockBuild, times(2)).getNumber();
+    verify(mockBuild).getTimestamp();
+    verify(mockBuild, times(3)).getRootBuild();
+    verify(mockBuild).getBuildVariables();
+
+    verify(mockTestResultAction).getTotalCount();
+    verify(mockTestResultAction).getSkipCount();
+    verify(mockTestResultAction).getFailCount();
+    verify(mockTestResultAction, times(2)).getFailedTests();
+
+    verify(mockProject, times(2)).getName();
+
+    verify(mockDate).getTime();
+  }
+
+  @Test
+  public void constructorSuccessNoTests() {
+    when(mockBuild.getTestResultAction()).thenReturn(null);
+
+    BuildData buildData = new BuildData(mockBuild, mockDate);
+
+    Assert.assertEquals("Incorrect test results", null, buildData.testResults);
+
+    // Verify the rest of the results
+    verify(mockBuild).getId();
+    verify(mockBuild, times(2)).getResult();
+    verify(mockBuild, times(2)).getParent();
+    verify(mockBuild, times(2)).getDisplayName();
+    verify(mockBuild).getFullDisplayName();
+    verify(mockBuild).getDescription();
+    verify(mockBuild).getUrl();
+    verify(mockBuild).getTestResultAction();
     verify(mockBuild).getBuiltOn();
     verify(mockBuild, times(2)).getNumber();
     verify(mockBuild).getTimestamp();
@@ -194,6 +293,7 @@ public class BuildDataTest {
     buildData.setRootProjectName("ROOT PROJECT NAME");
     buildData.timestamp = "2000-02-01T00:00:00-0800";
     buildData.setUrl("http://localhost:8080/jenkins/jobs/PROJECT_NAME/123");
+    buildData.setTestResults(new TestData());
 
     return buildData;
   }
