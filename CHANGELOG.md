@@ -1,3 +1,7 @@
+1.0.3
+-----
+* Fix incompatibility with Jenkins core 1.577 and later
+
 1.0.2
 -----
 * Add test results to the payload
