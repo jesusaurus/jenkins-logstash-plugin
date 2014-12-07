@@ -56,7 +56,7 @@ public class BuildDataTest {
     when(mockBuild.getRootBuild()).thenReturn(mockBuild);
     when(mockBuild.getBuildVariables()).thenReturn(Collections.emptyMap());
     when(mockBuild.getLog(3)).thenReturn(Arrays.asList("line 1", "line 2", "line 3"));
-    when(mockBuild.getTestResultAction()).thenReturn(mockTestResultAction);
+    when(mockBuild.getAction(AbstractTestResultAction.class)).thenReturn(mockTestResultAction);
 
     when(mockTestResultAction.getTotalCount()).thenReturn(0);
     when(mockTestResultAction.getSkipCount()).thenReturn(0);
@@ -96,7 +96,7 @@ public class BuildDataTest {
     verify(mockBuild).getFullDisplayName();
     verify(mockBuild).getDescription();
     verify(mockBuild).getUrl();
-    verify(mockBuild).getTestResultAction();
+    verify(mockBuild).getAction(AbstractTestResultAction.class);
     verify(mockBuild).getBuiltOn();
     verify(mockBuild, times(2)).getNumber();
     verify(mockBuild).getTimestamp();
@@ -136,7 +136,7 @@ public class BuildDataTest {
     verify(mockBuild).getFullDisplayName();
     verify(mockBuild).getDescription();
     verify(mockBuild).getUrl();
-    verify(mockBuild).getTestResultAction();
+    verify(mockBuild).getAction(AbstractTestResultAction.class);
     verify(mockBuild).getBuiltOn();
     verify(mockBuild, times(2)).getNumber();
     verify(mockBuild).getTimestamp();
@@ -176,7 +176,7 @@ public class BuildDataTest {
     verify(mockBuild).getFullDisplayName();
     verify(mockBuild).getDescription();
     verify(mockBuild).getUrl();
-    verify(mockBuild).getTestResultAction();
+    verify(mockBuild).getAction(AbstractTestResultAction.class);
     verify(mockBuild).getBuiltOn();
     verify(mockBuild, times(2)).getNumber();
     verify(mockBuild).getTimestamp();
@@ -217,7 +217,7 @@ public class BuildDataTest {
     verify(mockBuild).getFullDisplayName();
     verify(mockBuild).getDescription();
     verify(mockBuild).getUrl();
-    verify(mockBuild).getTestResultAction();
+    verify(mockBuild).getAction(AbstractTestResultAction.class);
     verify(mockBuild).getBuiltOn();
     verify(mockBuild, times(2)).getNumber();
     verify(mockBuild).getTimestamp();
@@ -236,7 +236,7 @@ public class BuildDataTest {
 
   @Test
   public void constructorSuccessNoTests() {
-    when(mockBuild.getTestResultAction()).thenReturn(null);
+    when(mockBuild.getAction(AbstractTestResultAction.class)).thenReturn(null);
 
     BuildData buildData = new BuildData(mockBuild, mockDate);
 
@@ -250,7 +250,7 @@ public class BuildDataTest {
     verify(mockBuild).getFullDisplayName();
     verify(mockBuild).getDescription();
     verify(mockBuild).getUrl();
-    verify(mockBuild).getTestResultAction();
+    verify(mockBuild).getAction(AbstractTestResultAction.class);
     verify(mockBuild).getBuiltOn();
     verify(mockBuild, times(2)).getNumber();
     verify(mockBuild).getTimestamp();

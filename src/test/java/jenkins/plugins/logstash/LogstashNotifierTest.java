@@ -72,7 +72,7 @@ public class LogstashNotifierTest {
     when(mockBuild.getRootBuild()).thenReturn(mockBuild);
     when(mockBuild.getBuildVariables()).thenReturn(Collections.emptyMap());
     when(mockBuild.getLog(3)).thenReturn(Arrays.asList("line 1", "line 2", "line 3"));
-    when(mockBuild.getTestResultAction()).thenReturn(mockTestResultAction);
+    when(mockBuild.getAction(AbstractTestResultAction.class)).thenReturn(mockTestResultAction);
 
     when(mockTestResultAction.getTotalCount()).thenReturn(0);
     when(mockTestResultAction.getSkipCount()).thenReturn(0);
@@ -118,7 +118,7 @@ public class LogstashNotifierTest {
     verify(mockBuild).getFullDisplayName();
     verify(mockBuild).getDescription();
     verify(mockBuild).getUrl();
-    verify(mockBuild).getTestResultAction();
+    verify(mockBuild).getAction(AbstractTestResultAction.class);
     verify(mockBuild).getBuiltOn();
     verify(mockBuild, times(2)).getNumber();
     verify(mockBuild).getTimestamp();
@@ -189,7 +189,7 @@ public class LogstashNotifierTest {
     verify(mockBuild).getFullDisplayName();
     verify(mockBuild).getDescription();
     verify(mockBuild).getUrl();
-    verify(mockBuild).getTestResultAction();
+    verify(mockBuild).getAction(AbstractTestResultAction.class);
     verify(mockBuild).getBuiltOn();
     verify(mockBuild, times(2)).getNumber();
     verify(mockBuild).getTimestamp();
@@ -216,7 +216,7 @@ public class LogstashNotifierTest {
   @Test
   public void performSuccessNoTestResults() throws Exception {
     // Initialize mocks
-    when(mockBuild.getTestResultAction()).thenReturn(null);
+    when(mockBuild.getAction(AbstractTestResultAction.class)).thenReturn(null);
 
     // Unit under test
     boolean result = notifier.perform(mockBuild, mockLauncher, mockListener);
@@ -231,7 +231,7 @@ public class LogstashNotifierTest {
     verify(mockBuild).getFullDisplayName();
     verify(mockBuild).getDescription();
     verify(mockBuild).getUrl();
-    verify(mockBuild).getTestResultAction();
+    verify(mockBuild).getAction(AbstractTestResultAction.class);
     verify(mockBuild).getBuiltOn();
     verify(mockBuild, times(2)).getNumber();
     verify(mockBuild).getTimestamp();
@@ -265,7 +265,7 @@ public class LogstashNotifierTest {
     verify(mockBuild).getFullDisplayName();
     verify(mockBuild).getDescription();
     verify(mockBuild).getUrl();
-    verify(mockBuild).getTestResultAction();
+    verify(mockBuild).getAction(AbstractTestResultAction.class);
     verify(mockBuild).getBuiltOn();
     verify(mockBuild, times(2)).getNumber();
     verify(mockBuild).getTimestamp();
@@ -310,7 +310,7 @@ public class LogstashNotifierTest {
     verify(mockBuild).getFullDisplayName();
     verify(mockBuild).getDescription();
     verify(mockBuild).getUrl();
-    verify(mockBuild).getTestResultAction();
+    verify(mockBuild).getAction(AbstractTestResultAction.class);
     verify(mockBuild).getBuiltOn();
     verify(mockBuild, times(2)).getNumber();
     verify(mockBuild).getTimestamp();

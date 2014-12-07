@@ -117,7 +117,7 @@ public class BuildData {
     description = build.getDescription();
     url = build.getUrl();
 
-    Action testResultAction = build.getTestResultAction();
+    Action testResultAction = build.getAction(AbstractTestResultAction.class);
     if (testResultAction != null) {
       testResults = new TestData(testResultAction);
     }
