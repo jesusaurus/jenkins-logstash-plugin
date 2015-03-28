@@ -38,7 +38,8 @@ import net.sf.json.JSONObject;
 public interface LogstashIndexerDao {
   static enum IndexerType {
     REDIS,
-    RABBIT_MQ
+    RABBIT_MQ,
+    ELASTICSEARCH
   }
 
   int getPort();
