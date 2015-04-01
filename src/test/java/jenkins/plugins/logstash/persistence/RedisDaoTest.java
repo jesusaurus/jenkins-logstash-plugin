@@ -1,31 +1,33 @@
 package jenkins.plugins.logstash.persistence;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
-import java.io.PrintStream;
-
+import org.apache.commons.lang.exception.ExceptionUtils;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Matchers;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.runners.MockitoJUnitRunner;
 
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
 import redis.clients.jedis.exceptions.JedisConnectionException;
 
+import java.io.IOException;
+
 @RunWith(MockitoJUnitRunner.class)
 public class RedisDaoTest {
   RedisDao dao;
   @Mock JedisPool mockPool;
   @Mock Jedis mockJedis;
-  @Mock PrintStream mockLogger;
 
   RedisDao createDao(String host, int port, String key, String username, String password) {
     return new RedisDao(mockPool, host, port, key, username, password);
@@ -43,7 +45,6 @@ public class RedisDaoTest {
   public void after() throws Exception {
     verifyNoMoreInteractions(mockPool);
     verifyNoMoreInteractions(mockJedis);
-    verifyNoMoreInteractions(mockLogger);
   }
 
   @Test(expected = IllegalArgumentException.class)
@@ -99,60 +100,66 @@ public class RedisDaoTest {
     assertEquals("Wrong password", "password", dao.password);
   }
 
-  @Test
+  @Test(expected = IOException.class)
   public void pushFailUnauthorized() throws Exception {
     // Initialize mocks
     when(mockJedis.auth("password")).thenThrow(new JedisConnectionException("Unauthorized"));
 
     // Unit under test
-    long result = dao.push("", mockLogger);
-
-    // Verify results
-    assertEquals("Return code should be an error", -1L, result);
-
-    verify(mockPool).getResource();
-    verify(mockPool).returnBrokenResource(mockJedis);
-    verify(mockJedis).auth("password");
-    verify(mockLogger).println(Matchers.startsWith("redis.clients.jedis.exceptions.JedisConnectionException: Unauthorized"));
+    try {
+      dao.push("");
+    } catch (IOException e) {
+      // Verify results
+      verify(mockPool).getResource();
+      verify(mockPool).returnBrokenResource(mockJedis);
+      verify(mockJedis).auth("password");
+      assertEquals("wrong error message",
+        "IOException: redis.clients.jedis.exceptions.JedisConnectionException: Unauthorized", ExceptionUtils.getMessage(e));
+      throw e;
+    }
   }
 
-  @Test
+  @Test(expected = IOException.class)
   public void pushFailCantConnect() throws Exception {
     // Initialize mocks
     doThrow(new JedisConnectionException("Connection refused")).when(mockJedis).connect();
 
     // Unit under test
-    long result = dao.push("", mockLogger);
-
-    // Verify results
-    assertEquals("Return code should be an error", -1L, result);
-
-    verify(mockPool).getResource();
-    verify(mockPool).returnBrokenResource(mockJedis);
-    verify(mockJedis).auth("password");
-    verify(mockLogger).println(Matchers.startsWith("redis.clients.jedis.exceptions.JedisConnectionException: Connection refused"));
-    verify(mockJedis).connect();
+    try {
+      dao.push("");
+    } catch (IOException e) {
+      // Verify results
+      verify(mockPool).getResource();
+      verify(mockPool).returnBrokenResource(mockJedis);
+      verify(mockJedis).auth("password");
+      verify(mockJedis).connect();
+      assertEquals("wrong error message",
+        "IOException: redis.clients.jedis.exceptions.JedisConnectionException: Connection refused", ExceptionUtils.getMessage(e));
+      throw e;
+    }
   }
 
-  @Test
+  @Test(expected = IOException.class)
   public void pushFailCantWrite() throws Exception {
     String json = "{ 'foo': 'bar' }";
 
     // Initialize mocks
     when(mockJedis.rpush("logstash", json)).thenThrow(new JedisConnectionException("Push failed"));
 
-    // Unit under test
-    long result = dao.push(json, mockLogger);
-
-    // Verify results
-    assertEquals("Return code should be an error", -1L, result);
-
-    verify(mockPool).getResource();
-    verify(mockPool).returnBrokenResource(mockJedis);
-    verify(mockJedis).auth("password");
-    verify(mockLogger).println(Matchers.startsWith("redis.clients.jedis.exceptions.JedisConnectionException: Push failed"));
-    verify(mockJedis).connect();
-    verify(mockJedis).rpush("logstash", json);
+    try {
+      // Unit under test
+      dao.push(json);
+    } catch (IOException e) {
+      // Verify results
+      verify(mockPool).getResource();
+      verify(mockPool).returnBrokenResource(mockJedis);
+      verify(mockJedis).auth("password");
+      verify(mockJedis).connect();
+      verify(mockJedis).rpush("logstash", json);
+      assertEquals("wrong error message",
+        "IOException: redis.clients.jedis.exceptions.JedisConnectionException: Push failed", ExceptionUtils.getMessage(e));
+      throw e;
+    }
   }
 
   @Test
@@ -163,11 +170,9 @@ public class RedisDaoTest {
     when(mockJedis.rpush("logstash", json)).thenReturn(1L);
 
     // Unit under test
-    long result = dao.push(json, mockLogger);
+    dao.push(json);
 
     // Verify results
-    assertEquals("Unexpected return code", 1L, result);
-
     verify(mockPool).getResource();
     verify(mockPool).returnResource(mockJedis);
     verify(mockJedis).auth("password");
@@ -185,11 +190,9 @@ public class RedisDaoTest {
     when(mockJedis.rpush("logstash", json)).thenReturn(1L);
 
     // Unit under test
-    long result = dao.push(json, mockLogger);
+    dao.push(json);
 
     // Verify results
-    assertEquals("Unexpected return code", 1L, result);
-
     verify(mockPool).getResource();
     verify(mockPool).returnResource(mockJedis);
     verify(mockJedis).connect();

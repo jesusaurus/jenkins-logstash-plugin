@@ -88,17 +88,6 @@ public class ElasticSearchDao extends AbstractLogstashIndexerDao {
     clientBuilder = factory == null ? HttpClientBuilder.create() : factory;
   }
 
-  @Override
-  public long push(String data, PrintStream logger) {
-    try {
-      this.push(data);
-      return 1;
-    } catch (IOException e) {
-      logger.println(ExceptionUtils.getStackTrace(e));
-    }
-    return -1;
-  }
-
   HttpPost getHttpPost(String data) {
     HttpPost postRequest;
     postRequest = new HttpPost(uri);
@@ -110,7 +99,8 @@ public class ElasticSearchDao extends AbstractLogstashIndexerDao {
     return postRequest;
   }
 
-  private void push(String data) throws IOException {
+  @Override
+  public void push(String data) throws IOException {
     CloseableHttpClient httpClient = null;
     CloseableHttpResponse response = null;
     HttpPost post = getHttpPost(data);

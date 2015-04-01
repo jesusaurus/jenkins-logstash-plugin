@@ -2,6 +2,7 @@ package jenkins.plugins.logstash;
 
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Matchers.startsWith;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
@@ -30,6 +31,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Matchers;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.runners.MockitoJUnitRunner;
 
 @SuppressWarnings("rawtypes")
@@ -84,7 +86,10 @@ public class LogstashNotifierTest {
     when(mockListener.getLogger()).thenReturn(mockLogger);
 
     when(mockDao.buildPayload(Matchers.any(BuildData.class), Matchers.anyString(), Matchers.anyListOf(String.class))).thenReturn(new JSONObject());
-    when(mockDao.push("{}", mockLogger)).thenReturn(1L);
+    // Initialize mocks
+    Mockito.doNothing().when(mockDao).push("{}");
+
+    //when(mockDao.push("{}");
     when(mockDao.getIndexerType()).thenReturn(IndexerType.REDIS);
     when(mockDao.getHost()).thenReturn("localhost");
     when(mockDao.getPort()).thenReturn(8080);
@@ -133,14 +138,12 @@ public class LogstashNotifierTest {
 
     verify(mockProject, times(2)).getName();
 
-    verify(mockListener).getLogger();
-
     verify(mockDao).buildPayload(Matchers.any(BuildData.class), Matchers.eq("http://my-jenkins-url"), Matchers.anyListOf(String.class));
-    verify(mockDao).push("{}", mockLogger);
+    verify(mockDao).push("{}");
   }
 
   @Test
-  public void performFailNullDaoDontFailBuild() throws Exception {
+  public void performFailNullDaoDoNotFailBuild() throws Exception {
     // Initialize mocks
     notifier = new MockLogstashNotifier(3, false, "http://my-jenkins-url", null);
 
@@ -204,13 +207,13 @@ public class LogstashNotifierTest {
 
     verify(mockProject, times(2)).getName();
 
-    verify(mockListener, times(3)).getLogger();
+    verify(mockListener, times(2)).getLogger();
 
     verify(mockLogger).println("[logstash-plugin]: Unable to serialize log data.");
     verify(mockLogger).println(Matchers.startsWith("java.io.IOException: Unable to read log file"));
 
     verify(mockDao).buildPayload(Matchers.any(BuildData.class), Matchers.eq("http://my-jenkins-url"), Matchers.anyListOf(String.class));
-    verify(mockDao).push("{}", mockLogger);
+    verify(mockDao).push("{}");
   }
 
   @Test
@@ -241,16 +244,14 @@ public class LogstashNotifierTest {
 
     verify(mockProject, times(2)).getName();
 
-    verify(mockListener).getLogger();
-
     verify(mockDao).buildPayload(Matchers.any(BuildData.class), Matchers.eq("http://my-jenkins-url"), Matchers.anyListOf(String.class));
-    verify(mockDao).push("{}", mockLogger);
+    verify(mockDao).push("{}");
   }
 
   @Test
-  public void performFailUnableToPushDontFailBuild() throws Exception {
+  public void performFailUnableToPushDoNotFailBuild() throws Exception {
     // Initialize mocks
-    when(mockDao.push("{}", mockLogger)).thenReturn(-1L);
+    Mockito.doThrow(new IOException()).when(mockDao).push("{}");
 
     // Unit under test
     boolean result = notifier.perform(mockBuild, mockLauncher, mockListener);
@@ -280,12 +281,12 @@ public class LogstashNotifierTest {
 
     verify(mockProject, times(2)).getName();
 
-    verify(mockListener, times(2)).getLogger();
+    verify(mockListener).getLogger();
 
-    verify(mockLogger).println("[logstash-plugin]: Failed to send log data to REDIS:localhost:8080.");
+    verify(mockLogger).println(startsWith("[logstash-plugin]: Failed to send log data to REDIS:localhost:8080."));
 
     verify(mockDao).buildPayload(Matchers.any(BuildData.class), Matchers.eq("http://my-jenkins-url"), Matchers.anyListOf(String.class));
-    verify(mockDao).push("{}", mockLogger);
+    verify(mockDao).push("{}");
     verify(mockDao).getIndexerType();
     verify(mockDao).getHost();
     verify(mockDao).getPort();
@@ -295,7 +296,7 @@ public class LogstashNotifierTest {
   public void performFailUnableToPushDoFailBuild() throws Exception {
     // Initialize mocks
     notifier = new MockLogstashNotifier(3, true, "http://my-jenkins-url", mockDao);
-    when(mockDao.push("{}", mockLogger)).thenReturn(-1L);
+    Mockito.doThrow(new IOException()).when(mockDao).push("{}");
 
     // Unit under test
     boolean result = notifier.perform(mockBuild, mockLauncher, mockListener);
@@ -325,12 +326,12 @@ public class LogstashNotifierTest {
 
     verify(mockProject, times(2)).getName();
 
-    verify(mockListener, times(2)).getLogger();
+    verify(mockListener).getLogger();
 
-    verify(mockLogger).println("[logstash-plugin]: Failed to send log data to REDIS:localhost:8080.");
+    verify(mockLogger).println(startsWith("[logstash-plugin]: Failed to send log data to REDIS:localhost:8080."));
 
     verify(mockDao).buildPayload(Matchers.any(BuildData.class), Matchers.eq("http://my-jenkins-url"), Matchers.anyListOf(String.class));
-    verify(mockDao).push("{}", mockLogger);
+    verify(mockDao).push("{}");
     verify(mockDao).getIndexerType();
     verify(mockDao).getHost();
     verify(mockDao).getPort();

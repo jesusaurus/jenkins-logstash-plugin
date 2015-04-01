@@ -6,7 +6,6 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import java.io.ByteArrayOutputStream;
-import java.io.PrintStream;
 
 import jenkins.plugins.logstash.persistence.BuildData;
 import jenkins.plugins.logstash.persistence.LogstashIndexerDao;
@@ -19,6 +18,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Matchers;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.runners.MockitoJUnitRunner;
 
 @SuppressWarnings("resource")
@@ -31,9 +31,9 @@ public class LogstashOutputStreamTest {
   @Mock BuildData mockBuildData;
 
   @Before
-  public void before() {
+  public void before() throws Exception {
     when(mockDao.buildPayload(Matchers.any(BuildData.class), Matchers.anyString(), Matchers.anyListOf(String.class))).thenReturn(new JSONObject());
-    when(mockDao.push(Matchers.startsWith("{}"), Matchers.any(PrintStream.class))).thenReturn(1L);
+    Mockito.doNothing().when(mockDao).push(Matchers.startsWith("{}"));
     when(mockDao.getIndexerType()).thenReturn(IndexerType.REDIS);
     when(mockDao.getHost()).thenReturn("localhost");
     when(mockDao.getPort()).thenReturn(8080);
@@ -78,7 +78,7 @@ public class LogstashOutputStreamTest {
     assertEquals("Results don't match", msg, buffer.toString());
 
     verify(mockDao).buildPayload(Matchers.eq(mockBuildData), Matchers.eq("http://my-jenkins-url"), Matchers.anyListOf(String.class));
-    verify(mockDao).push(Matchers.eq("{}"), Matchers.any(PrintStream.class));
+    verify(mockDao).push("{}");
   }
 
   @Test

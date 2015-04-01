@@ -29,12 +29,12 @@ import hudson.console.PlainTextConsoleOutputStream;
 
 import java.io.IOException;
 import java.io.OutputStream;
-import java.io.PrintStream;
 import java.util.Arrays;
 
 import jenkins.plugins.logstash.persistence.BuildData;
 import jenkins.plugins.logstash.persistence.LogstashIndexerDao;
 import net.sf.json.JSONObject;
+import org.apache.commons.lang.exception.ExceptionUtils;
 
 /**
  * Output stream that writes each line to the provided delegate output stream
@@ -79,10 +79,12 @@ public class LogstashOutputStream extends PlainTextConsoleOutputStream {
 
     if (!line.isEmpty() && dao != null && !connFailed) {
       JSONObject payload = dao.buildPayload(buildData, jenkinsUrl, Arrays.asList(line));
-      long result = dao.push(payload.toString(), new PrintStream(delegate));
-
-      if (result < 0) {
-        String msg = "[logstash-plugin]: Failed to send log data to " + dao.getIndexerType() + ":" + dao.getHost() + ":" + dao.getPort() + ".\n";
+      try {
+        dao.push(payload.toString());
+      } catch (IOException e) {
+        String msg = "[logstash-plugin]: Failed to send log data to " + dao.getIndexerType() + ":" + dao.getHost() + ":" + dao.getPort() + ".\n" +
+          "[logstash-plugin]: No Further logs will be sent.\n" +
+          ExceptionUtils.getStackTrace(e);
         connFailed = true;
         delegate.write(msg.getBytes());
         delegate.flush();

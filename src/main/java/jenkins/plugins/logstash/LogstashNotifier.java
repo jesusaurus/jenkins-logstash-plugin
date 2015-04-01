@@ -106,12 +106,14 @@ public class LogstashNotifier extends Notifier {
 
     BuildData buildData = new BuildData(build, new Date());
     JSONObject payload = dao.buildPayload(buildData, jenkinsUrl, logLines);
-    long result = dao.push(payload.toString(), listener.getLogger());
-    if (result < 0) {
-      listener.getLogger().println("[logstash-plugin]: Failed to send log data to " + dao.getIndexerType() + ":" + dao.getHost() + ":" + dao.getPort() + ".");
+
+    try {
+      dao.push(payload.toString());
+    } catch (IOException e) {
+      listener.getLogger().println("[logstash-plugin]: Failed to send log data to " + dao.getIndexerType() + ":" + dao.getHost() + ":" + dao.getPort() + ".\n" +
+        ExceptionUtils.getStackTrace(e));
       return !failBuild;
     }
-
     return true;
   }
 

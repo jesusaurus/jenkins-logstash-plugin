@@ -24,10 +24,9 @@
 
 package jenkins.plugins.logstash.persistence;
 
-import java.io.PrintStream;
+import java.io.IOException;
 
 import org.apache.commons.lang.StringUtils;
-import org.apache.commons.lang.exception.ExceptionUtils;
 
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
@@ -63,7 +62,7 @@ public class RedisDao extends AbstractLogstashIndexerDao {
   }
 
   @Override
-  public long push(String data, PrintStream logger) {
+  public void push(String data) throws IOException {
     Jedis jedis = null;
     boolean connectionBroken = false;
     try {
@@ -75,12 +74,12 @@ public class RedisDao extends AbstractLogstashIndexerDao {
       jedis.connect();
       long result = jedis.rpush(key, data);
       jedis.disconnect();
-
-      return result;
+      if (result <= 0) {
+        throw new IOException("Failed to push results");
+      }
     } catch (JedisException e) {
-      logger.println(ExceptionUtils.getStackTrace(e));
-
       connectionBroken = (e instanceof JedisConnectionException);
+      throw new IOException(e);
     } finally {
       if (jedis != null) {
         if (connectionBroken) {
@@ -90,8 +89,6 @@ public class RedisDao extends AbstractLogstashIndexerDao {
         }
       }
     }
-
-    return -1;
   }
 
   @Override

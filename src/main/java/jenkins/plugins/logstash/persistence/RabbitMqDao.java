@@ -25,10 +25,8 @@
 package jenkins.plugins.logstash.persistence;
 
 import java.io.IOException;
-import java.io.PrintStream;
 
 import org.apache.commons.lang.StringUtils;
-import org.apache.commons.lang.exception.ExceptionUtils;
 
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
@@ -70,7 +68,7 @@ public class RabbitMqDao extends AbstractLogstashIndexerDao {
   }
 
   @Override
-  public long push(String data, PrintStream logger) {
+  public void push(String data) throws IOException {
     Connection connection = null;
     Channel channel = null;
     try {
@@ -79,16 +77,14 @@ public class RabbitMqDao extends AbstractLogstashIndexerDao {
 
       channel.queueDeclare(key, true, false, false, null);
       channel.basicPublish("", key, null, data.getBytes());
-
-      channel.close();
-      connection.close();
-
-      return 1;
-    } catch (IOException e) {
-      logger.println(ExceptionUtils.getStackTrace(e));
+    } finally {
+      if (channel != null) {
+        channel.close();
+      }
+      if (connection != null) {
+        connection.close();
+      }
     }
-
-    return -1;
   }
 
   @Override

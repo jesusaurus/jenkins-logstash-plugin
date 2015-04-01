@@ -17,7 +17,7 @@ import org.mockito.*;
 import org.mockito.runners.MockitoJUnitRunner;
 
 import java.io.ByteArrayOutputStream;
-import java.io.PrintStream;
+import java.io.IOException;
 import java.net.URI;
 
 import static org.junit.Assert.assertEquals;
@@ -32,7 +32,6 @@ public class ElasticSearchDaoTest {
   @Mock StatusLine mockStatusLine;
   @Mock CloseableHttpResponse mockResponse;
   @Mock HttpEntity mockEntity;
-  @Mock PrintStream mockLogger;
 
   ElasticSearchDao createDao(String host, int port, String key, String username, String password) {
     return new ElasticSearchDao(mockClientBuilder, host, port, key, username, password);
@@ -52,7 +51,6 @@ public class ElasticSearchDaoTest {
   public void after() throws Exception {
     verifyNoMoreInteractions(mockClientBuilder);
     verifyNoMoreInteractions(mockHttpClient);
-    verifyNoMoreInteractions(mockLogger);
   }
 
   @Test(expected = IllegalArgumentException.class)
@@ -199,10 +197,7 @@ public class ElasticSearchDaoTest {
     when(mockStatusLine.getStatusCode()).thenReturn(201);
 
     // Unit under test
-    long result = dao.push(json, mockLogger);
-
-    // Verify results
-    assertEquals("Unexpected return code", 1L, result);
+    dao.push(json);
 
     verify(mockClientBuilder).build();
     verify(mockHttpClient).execute(any(HttpPost.class));
@@ -211,7 +206,7 @@ public class ElasticSearchDaoTest {
     verify(mockHttpClient).close();
   }
 
-  @Test
+  @Test(expected = IOException.class)
   public void pushFailStatusCode() throws Exception {
     String json = "{ 'foo': 'bar' }";
     dao = createDao("http://localhost", 8200, "/jenkins/logstash", "username", "password");
@@ -220,18 +215,19 @@ public class ElasticSearchDaoTest {
     when(mockResponse.getEntity()).thenReturn(new StringEntity("Something bad happened.", ContentType.TEXT_PLAIN));
 
     // Unit under test
-    long result = dao.push(json, mockLogger);
+    try {
+      dao.push(json);
+    } catch (IOException e) {
+      // Verify results
+      verify(mockClientBuilder).build();
+      verify(mockHttpClient).execute(any(HttpPost.class));
+      verify(mockStatusLine, atLeastOnce()).getStatusCode();
+      verify(mockResponse).close();
+      verify(mockHttpClient).close();
+      assertTrue("wrong error message",
+        e.getMessage().contains("Something bad happened.") && e.getMessage().contains("HTTP error code: 500"));
+        throw e;
+    }
 
-    // Verify results
-    assertEquals("Unexpected return code", -1L, result);
-
-    verify(mockClientBuilder).build();
-    verify(mockHttpClient).execute(any(HttpPost.class));
-    verify(mockStatusLine, atLeastOnce()).getStatusCode();
-    verify(mockLogger).println(AdditionalMatchers.and(
-      startsWith("java.io.IOException: HTTP error code: 500"),
-      contains("Something bad happened.")));
-    verify(mockResponse).close();
-    verify(mockHttpClient).close();
   }
 }
