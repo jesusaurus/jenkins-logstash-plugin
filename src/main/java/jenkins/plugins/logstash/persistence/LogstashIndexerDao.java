@@ -42,9 +42,7 @@ public interface LogstashIndexerDao {
     ELASTICSEARCH
   }
 
-  int getPort();
-
-  String getHost();
+  String getDescription();
 
   IndexerType getIndexerType();
 

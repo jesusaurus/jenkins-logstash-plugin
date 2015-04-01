@@ -65,7 +65,7 @@ public class LogstashInstallation extends ToolInstallation {
   public static final class Descriptor extends ToolDescriptor<LogstashInstallation> {
     public IndexerType type;
     public String host;
-    public Integer port;
+    public Integer port = -1;
     public String username;
     public String password;
     public String key;
@@ -95,13 +95,9 @@ public class LogstashInstallation extends ToolInstallation {
     }
 
     /**
-     * @see IndexerDaoFactory#getInstance(IndexerType, String, int, String, String)
+     * @see IndexerDaoFactory#getInstance(IndexerType, String, Integer, String, String, String)
      */
     public LogstashIndexerDao getIndexerDao() throws InstantiationException {
-      if (StringUtils.isEmpty(host)) {
-        return null;
-      }
-
       return IndexerDaoFactory.getInstance(type, host, port, key, username, password);
     }
 

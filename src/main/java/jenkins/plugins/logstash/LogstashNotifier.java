@@ -55,21 +55,13 @@ import org.kohsuke.stapler.DataBoundConstructor;
  */
 public class LogstashNotifier extends Notifier {
 
-  private transient String jenkinsUrl;
-
   public int maxLines;
   public boolean failBuild;
 
   @DataBoundConstructor
   public LogstashNotifier(int maxLines, boolean failBuild) {
-    this(maxLines, failBuild, Jenkins.getInstance().getRootUrl());
-  }
-
-  // Constructor for unit tests
-  protected LogstashNotifier(int maxLines, boolean failBuild, String jenkinsUrl) {
     this.maxLines = maxLines;
     this.failBuild = failBuild;
-    this.jenkinsUrl = jenkinsUrl;
   }
 
   @Override
@@ -80,11 +72,6 @@ public class LogstashNotifier extends Notifier {
     } catch (InstantiationException e) {
       listener.getLogger().println(ExceptionUtils.getStackTrace(e));
       listener.getLogger().println("[logstash-plugin]: Unable to instantiate LogstashIndexerDao with current configuration.");
-      return !failBuild;
-    }
-
-    if (dao == null) {
-      listener.getLogger().println("[logstash-plugin]: Host name not specified. Unable to send log data.");
       return !failBuild;
     }
 
@@ -105,21 +92,25 @@ public class LogstashNotifier extends Notifier {
     }
 
     BuildData buildData = new BuildData(build, new Date());
-    JSONObject payload = dao.buildPayload(buildData, jenkinsUrl, logLines);
+    JSONObject payload = dao.buildPayload(buildData, getJenkinsUrl(), logLines);
 
     try {
       dao.push(payload.toString());
     } catch (IOException e) {
-      listener.getLogger().println("[logstash-plugin]: Failed to send log data to " + dao.getIndexerType() + ":" + dao.getHost() + ":" + dao.getPort() + ".\n" +
-        ExceptionUtils.getStackTrace(e));
+      listener.getLogger().println(ExceptionUtils.getStackTrace(e));
+      listener.getLogger().println("[logstash-plugin]: Failed to send log data to " + dao.getIndexerType() + ":" + dao.getDescription() + ".");
       return !failBuild;
     }
     return true;
   }
 
   // Method to encapsulate calls to Jenkins.getInstance() for unit-testing
-  protected LogstashIndexerDao getDao() throws InstantiationException {
+  LogstashIndexerDao getDao() throws InstantiationException {
     return LogstashInstallation.getLogstashDescriptor().getIndexerDao();
+  }
+
+  String getJenkinsUrl() {
+    return Jenkins.getInstance().getRootUrl();
   }
 
   public BuildStepMonitor getRequiredMonitorService() {

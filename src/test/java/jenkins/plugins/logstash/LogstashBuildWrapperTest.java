@@ -1,10 +1,10 @@
 package jenkins.plugins.logstash;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
+import static org.hamcrest.core.StringContains.containsString;
+
 import hudson.model.Result;
 import hudson.model.AbstractBuild;
 import hudson.model.Project;
@@ -38,12 +38,16 @@ public class LogstashBuildWrapperTest {
     }
 
     @Override
-    protected LogstashIndexerDao getDao() {
+    LogstashIndexerDao getDao() throws InstantiationException {
+      if (dao == null) {
+        throw new InstantiationException("DoaTestInstantiationException");
+      }
+
       return dao;
     }
 
     @Override
-    public String getJenkinsUrl() {
+    String getJenkinsUrl() {
       return "http://my-jenkins-url";
     }
   }
@@ -70,8 +74,7 @@ public class LogstashBuildWrapperTest {
     when(mockProject.getName()).thenReturn("LogstashNotifierTest");
 
     when(mockDao.getIndexerType()).thenReturn(IndexerType.REDIS);
-    when(mockDao.getHost()).thenReturn("localhost");
-    when(mockDao.getPort()).thenReturn(8080);
+    when(mockDao.getDescription()).thenReturn("localhost:8080");
 
     buffer = new ByteArrayOutputStream();
   }
@@ -104,6 +107,6 @@ public class LogstashBuildWrapperTest {
     // Verify results
     assertNotNull("Result was null", result);
     assertTrue("Result is not the right type", result instanceof LogstashOutputStream);
-    assertEquals("Results don't match", "[logstash-plugin]: Unable to instantiate LogstashIndexerDao with current configuration.\n", buffer.toString());
+    assertThat("Results don't match", buffer.toString(), containsString("[logstash-plugin]: Unable to instantiate LogstashIndexerDao with current configuration.\n[logstash-plugin]: No Further logs will be sent.\n"));
   }
 }

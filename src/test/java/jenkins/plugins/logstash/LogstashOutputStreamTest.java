@@ -35,8 +35,7 @@ public class LogstashOutputStreamTest {
     when(mockDao.buildPayload(Matchers.any(BuildData.class), Matchers.anyString(), Matchers.anyListOf(String.class))).thenReturn(new JSONObject());
     Mockito.doNothing().when(mockDao).push(Matchers.startsWith("{}"));
     when(mockDao.getIndexerType()).thenReturn(IndexerType.REDIS);
-    when(mockDao.getHost()).thenReturn("localhost");
-    when(mockDao.getPort()).thenReturn(8080);
+    when(mockDao.getDescription()).thenReturn("localhost:8080");
 
     buffer = new ByteArrayOutputStream();
   }
@@ -62,7 +61,7 @@ public class LogstashOutputStreamTest {
     new LogstashOutputStream(buffer, null, mockBuildData, "http://my-jenkins-url");
 
     // Verify results
-    assertEquals("Results don't match", "[logstash-plugin]: Unable to instantiate LogstashIndexerDao with current configuration.\n", buffer.toString());
+    assertEquals("Results don't match", "[logstash-plugin]: Unable to instantiate LogstashIndexerDao with current configuration.\n[logstash-plugin]: No Further logs will be sent.\n", buffer.toString());
   }
 
   @Test
