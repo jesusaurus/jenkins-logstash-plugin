@@ -34,13 +34,14 @@ public class ElasticSearchDaoTest {
   @Mock HttpEntity mockEntity;
   @Mock PrintStream mockLogger;
 
+  ElasticSearchDao createDao(String host, int port, String key, String username, String password) {
+    return new ElasticSearchDao(mockClientBuilder, host, port, key, username, password);
+  }
+
   @Before
   public void before() throws Exception {
     int port = (int) (Math.random() * 1000);
-    dao = new ElasticSearchDao("http://localhost", port, "/jenkins/logstash", "username", "password");
-
-    // Note that we can't run these tests in parallel
-    dao.clientBuilder = mockClientBuilder;
+    dao = createDao("http://localhost", port, "/jenkins/logstash", "username", "password");
 
     when(mockClientBuilder.build()).thenReturn(mockHttpClient);
     when(mockHttpClient.execute(any(HttpPost.class))).thenReturn(mockResponse);
@@ -57,7 +58,7 @@ public class ElasticSearchDaoTest {
   @Test(expected = IllegalArgumentException.class)
   public void constructorFailNullHost() throws Exception {
     try {
-      new ElasticSearchDao(null, 8200, "logstash", "username", "password");
+      createDao(null, 8200, "logstash", "username", "password");
     } catch (IllegalArgumentException e) {
       assertEquals("Wrong error message was thrown", "host name is required", e.getMessage());
       throw e;
@@ -67,7 +68,7 @@ public class ElasticSearchDaoTest {
   @Test(expected = IllegalArgumentException.class)
   public void constructorFailEmptyHost() throws Exception {
     try {
-      new ElasticSearchDao(" ", 8200, "logstash", "username", "password");
+      createDao(" ", 8200, "logstash", "username", "password");
     } catch (IllegalArgumentException e) {
       assertEquals("Wrong error message was thrown", "host name is required", e.getMessage());
       throw e;
@@ -77,7 +78,7 @@ public class ElasticSearchDaoTest {
   @Test(expected = IllegalArgumentException.class)
   public void constructorFailMissingScheme() throws Exception {
     try {
-      new ElasticSearchDao("localhost", 8200, "logstash", "username", "password");
+      createDao("localhost", 8200, "logstash", "username", "password");
     } catch (IllegalArgumentException e) {
       assertEquals("Wrong error message was thrown", "host field must specify scheme, such as 'http://'", e.getMessage());
       throw e;
@@ -87,7 +88,7 @@ public class ElasticSearchDaoTest {
   @Test(expected = IllegalArgumentException.class)
   public void constructorFailNullKey() throws Exception {
     try {
-      new ElasticSearchDao("http://localhost", 8200, null, "username", "password");
+      createDao("http://localhost", 8200, null, "username", "password");
     } catch (IllegalArgumentException e) {
       assertEquals("Wrong error message was thrown", "elastic index name is required", e.getMessage());
       throw e;
@@ -97,7 +98,7 @@ public class ElasticSearchDaoTest {
   @Test(expected = IllegalArgumentException.class)
   public void constructorFailEmptyKey() throws Exception {
     try {
-      new ElasticSearchDao("http://localhost", 8200, " ", "username", "password");
+      createDao("http://localhost", 8200, " ", "username", "password");
     } catch (IllegalArgumentException e) {
       assertEquals("Wrong error message was thrown", "elastic index name is required", e.getMessage());
       throw e;
@@ -107,12 +108,13 @@ public class ElasticSearchDaoTest {
   @Test
   public void constructorSuccess1() throws Exception {
     // Unit under test
-    dao = new ElasticSearchDao("https://localhost", 8200, "logstash", "username", "password");
+    dao = createDao("https://localhost", 8200, "logstash", "username", "password");
 
     // Verify results
     assertEquals("Wrong host name", "https://localhost", dao.host);
     assertEquals("Wrong port", 8200, dao.port);
     assertEquals("Wrong key", "logstash", dao.key);
+    assertEquals("Wrong name", "username", dao.username);
     assertEquals("Wrong password", "password", dao.password);
     assertEquals("Wrong auth", "dXNlcm5hbWU6cGFzc3dvcmQ=", dao.auth);
     assertEquals("Wrong uri", new URI("https://localhost:8200/logstash"), dao.uri);
@@ -121,12 +123,13 @@ public class ElasticSearchDaoTest {
   @Test
   public void constructorSuccess2() throws Exception {
     // Unit under test
-    dao = new ElasticSearchDao("http://localhost", 8200, "jenkins/logstash", "", "password");
+    dao = createDao("http://localhost", 8200, "jenkins/logstash", "", "password");
 
     // Verify results
     assertEquals("Wrong host name", "http://localhost", dao.host);
     assertEquals("Wrong port", 8200, dao.port);
     assertEquals("Wrong key", "jenkins/logstash", dao.key);
+    assertEquals("Wrong name", "", dao.username);
     assertEquals("Wrong password", "password", dao.password);
     assertEquals("Wrong auth", null, dao.auth);
     assertEquals("Wrong uri", new URI("http://localhost:8200/jenkins/logstash"), dao.uri);
@@ -135,12 +138,13 @@ public class ElasticSearchDaoTest {
   @Test
   public void constructorSuccess3() throws Exception {
     // Unit under test
-    dao = new ElasticSearchDao("http://localhost", 8200, "/jenkins//logstash/", "userlongername", null);
+    dao = createDao("http://localhost", 8200, "/jenkins//logstash/", "userlongername", null);
 
     // Verify results
     assertEquals("Wrong host name", "http://localhost", dao.host);
     assertEquals("Wrong port", 8200, dao.port);
     assertEquals("Wrong key", "/jenkins//logstash/", dao.key);
+    assertEquals("Wrong name", "userlongername", dao.username);
     assertEquals("Wrong password", null, dao.password);
     assertEquals("Wrong auth", "dXNlcmxvbmdlcm5hbWU6", dao.auth);
     assertEquals("Wrong uri", new URI("http://localhost:8200/jenkins//logstash/"), dao.uri);
@@ -149,8 +153,7 @@ public class ElasticSearchDaoTest {
   @Test
   public void getPostSuccessNoAuth() throws Exception {
     String json = "{ 'foo': 'bar' }";
-    dao = new ElasticSearchDao("http://localhost", 8200, "/jenkins/logstash", "", "");
-    dao.clientBuilder = mockClientBuilder;
+    dao = createDao("http://localhost", 8200, "/jenkins/logstash", "", "");
 
     // Unit under test
     HttpPost post = dao.getHttpPost(json);
@@ -163,14 +166,13 @@ public class ElasticSearchDaoTest {
 
     ByteArrayOutputStream stream = new ByteArrayOutputStream();
     entity.writeTo(stream);
-    assertEquals("Wrong content", json, stream.toString(CharEncoding.UTF_8));
+    assertEquals("Wrong content", stream.toString(CharEncoding.UTF_8), "{ 'foo': 'bar' }");
   }
 
   @Test
   public void getPostSuccessAuth() throws Exception {
     String json = "{ 'foo': 'bar' }";
-    dao = new ElasticSearchDao("https://localhost", 8200, "/jenkins/logstash", "username", "password");
-    dao.clientBuilder = mockClientBuilder;
+    dao = createDao("https://localhost", 8200, "/jenkins/logstash", "username", "password");
 
     // Unit under test
     HttpPost post = dao.getHttpPost(json);
@@ -186,14 +188,13 @@ public class ElasticSearchDaoTest {
 
     ByteArrayOutputStream stream = new ByteArrayOutputStream();
     entity.writeTo(stream);
-    assertEquals("Wrong content", json, stream.toString(CharEncoding.UTF_8));
+    assertEquals("Wrong content", stream.toString(CharEncoding.UTF_8), "{ 'foo': 'bar' }");
   }
 
   @Test
   public void pushSuccess() throws Exception {
     String json = "{ 'foo': 'bar' }";
-    dao = new ElasticSearchDao("http://localhost", 8200, "/jenkins/logstash", "", "");
-    dao.clientBuilder = mockClientBuilder;
+    dao = createDao("http://localhost", 8200, "/jenkins/logstash", "", "");
 
     when(mockStatusLine.getStatusCode()).thenReturn(201);
 
@@ -213,8 +214,7 @@ public class ElasticSearchDaoTest {
   @Test
   public void pushFailStatusCode() throws Exception {
     String json = "{ 'foo': 'bar' }";
-    dao = new ElasticSearchDao("http://localhost", 8200, "/jenkins/logstash", "username", "password");
-    dao.clientBuilder = mockClientBuilder;
+    dao = createDao("http://localhost", 8200, "/jenkins/logstash", "username", "password");
 
     when(mockStatusLine.getStatusCode()).thenReturn(500);
     when(mockResponse.getEntity()).thenReturn(new StringEntity("Something bad happened.", ContentType.TEXT_PLAIN));

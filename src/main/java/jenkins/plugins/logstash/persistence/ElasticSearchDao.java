@@ -48,19 +48,18 @@ import java.net.URISyntaxException;
  * @since 1.0.4
  */
 public class ElasticSearchDao extends AbstractLogstashIndexerDao {
-  HttpClientBuilder clientBuilder;
-  URI uri;
-  String auth;
+  final HttpClientBuilder clientBuilder;
+  final URI uri;
+  final String auth;
 
-
-  ElasticSearchDao() { /* Required by IndexerDaoFactory */ }
-
-  // Constructor for unit testing
-  ElasticSearchDao(String host, int port, String key, String username, String password) {
-    init(host, port, key, username, password);
+  //primary constructor used by indexer factory
+  public ElasticSearchDao(String host, int port, String key, String username, String password) {
+    this(null, host, port, key, username, password);
   }
-  final void init(String host, int port, String key, String username, String password) {
-    super.init(host, port, key, username, password);
+
+  // Factored for unit testing
+  ElasticSearchDao(HttpClientBuilder factory, String host, int port, String key, String username, String password) {
+    super(host, port, key, username, password);
 
     if (StringUtils.isBlank(key)) {
       throw new IllegalArgumentException("elastic index name is required");
@@ -80,12 +79,13 @@ public class ElasticSearchDao extends AbstractLogstashIndexerDao {
       throw new IllegalArgumentException("host field must specify scheme, such as 'http://'");
     }
 
-    auth = null;
     if (StringUtils.isNotBlank(username)) {
       auth = Base64.encodeBase64String((username + ":" + StringUtils.defaultString(password)).getBytes());
+    } else {
+      auth = null;
     }
 
-    clientBuilder = HttpClientBuilder.create();
+    clientBuilder = factory == null ? HttpClientBuilder.create() : factory;
   }
 
   @Override
@@ -99,7 +99,7 @@ public class ElasticSearchDao extends AbstractLogstashIndexerDao {
     return -1;
   }
 
-  protected HttpPost getHttpPost(String data) {
+  HttpPost getHttpPost(String data) {
     HttpPost postRequest;
     postRequest = new HttpPost(uri);
     StringEntity input = new StringEntity(data, ContentType.APPLICATION_JSON);
