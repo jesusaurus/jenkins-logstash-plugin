@@ -72,6 +72,7 @@ public class LogstashOutputStream extends PlainTextConsoleOutputStream {
   @Override
   public void flush() throws IOException {
     delegate.flush();
+    super.flush();
   }
 
   /**
