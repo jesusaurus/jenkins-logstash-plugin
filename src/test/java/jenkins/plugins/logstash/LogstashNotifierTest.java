@@ -1,119 +1,87 @@
 package jenkins.plugins.logstash;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.Matchers.*;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoMoreInteractions;
-import static org.mockito.Mockito.when;
+import static org.hamcrest.core.StringContains.containsString;
+import static org.junit.Assert.*;
+import static org.mockito.Mockito.*;
+
 import hudson.Launcher;
 import hudson.model.BuildListener;
-import hudson.model.Result;
 import hudson.model.AbstractBuild;
-import hudson.model.Project;
-import hudson.tasks.test.AbstractTestResultAction;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.io.PrintStream;
 import java.util.Arrays;
-import java.util.Collections;
-import java.util.GregorianCalendar;
-
-import jenkins.plugins.logstash.persistence.BuildData;
-import jenkins.plugins.logstash.persistence.LogstashIndexerDao;
-import jenkins.plugins.logstash.persistence.LogstashIndexerDao.IndexerType;
-import net.sf.json.JSONObject;
 
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.mockito.Matchers;
 import org.mockito.Mock;
 import org.mockito.Mockito;
+import org.mockito.invocation.InvocationOnMock;
 import org.mockito.runners.MockitoJUnitRunner;
+import org.mockito.stubbing.Answer;
 
 @SuppressWarnings("rawtypes")
 @RunWith(MockitoJUnitRunner.class)
 public class LogstashNotifierTest {
   // Extension of the unit under test that avoids making calls to Jenkins.getInstance() to get the DAO singleton
   static class MockLogstashNotifier extends LogstashNotifier {
-    LogstashIndexerDao dao;
+    LogstashWriter writer;
 
-    MockLogstashNotifier(int maxLines, boolean failBuild, LogstashIndexerDao dao) {
+    MockLogstashNotifier(int maxLines, boolean failBuild, LogstashWriter writer) {
       super(maxLines, failBuild);
-      this.dao = dao;
+      this.writer = writer;
     }
 
     @Override
-    LogstashIndexerDao getDao() throws InstantiationException {
-      if (dao == null) {
-        throw new InstantiationException("DoaTestInstantiationException");
+    LogstashWriter getLogStashWriter(AbstractBuild<?, ?> build, OutputStream errorStream) {
+      // Simulate bad Writer
+      if(writer.isConnectionBroken()) {
+        try {
+          errorStream.write("Mocked Constructor failure".getBytes());
+        } catch (IOException e) {
+        }
       }
-
-      return dao;
-    }
-
-    @Override
-    String getJenkinsUrl() {
-      return "http://my-jenkins-url";
+      return this.writer;
     }
   }
 
-  @Mock AbstractBuild mockBuild;
-  @Mock AbstractTestResultAction mockTestResultAction;
-  @Mock Project mockProject;
+  @Mock AbstractBuild<?, ?> mockBuild;
+  @Mock LogstashWriter mockWriter;
   @Mock Launcher mockLauncher;
   @Mock BuildListener mockListener;
-  @Mock PrintStream mockLogger;
-  @Mock LogstashIndexerDao mockDao;
 
+  ByteArrayOutputStream errorBuffer;
+  PrintStream errorStream;
   LogstashNotifier notifier;
+
 
   @Before
   public void before() throws Exception {
-    when(mockBuild.getResult()).thenReturn(Result.SUCCESS);
-    when(mockBuild.getDisplayName()).thenReturn("LogstashNotifierTest");
-    when(mockBuild.getProject()).thenReturn(mockProject);
-    when(mockBuild.getBuiltOn()).thenReturn(null);
-    when(mockBuild.getNumber()).thenReturn(123456);
-    when(mockBuild.getDuration()).thenReturn(0L);
-    when(mockBuild.getTimestamp()).thenReturn(new GregorianCalendar());
-    when(mockBuild.getRootBuild()).thenReturn(mockBuild);
-    when(mockBuild.getBuildVariables()).thenReturn(Collections.emptyMap());
-    when(mockBuild.getLog(3)).thenReturn(Arrays.asList("line 1", "line 2", "line 3"));
-    when(mockBuild.getAction(AbstractTestResultAction.class)).thenReturn(mockTestResultAction);
+    errorBuffer = new ByteArrayOutputStream();
+    errorStream = new PrintStream(errorBuffer, true);
 
-    when(mockTestResultAction.getTotalCount()).thenReturn(0);
-    when(mockTestResultAction.getSkipCount()).thenReturn(0);
-    when(mockTestResultAction.getFailCount()).thenReturn(0);
-    when(mockTestResultAction.getFailedTests()).thenReturn(Collections.emptyList());
+    when(mockBuild.getLog(anyInt())).thenReturn(Arrays.asList("line 1", "line 2", "line 3"));
 
-    when(mockProject.getName()).thenReturn("LogstashNotifierTest");
+    when(mockListener.getLogger()).thenReturn(errorStream);
 
-    when(mockListener.getLogger()).thenReturn(mockLogger);
-
-    when(mockDao.buildPayload(Matchers.any(BuildData.class), Matchers.anyString(), Matchers.anyListOf(String.class))).thenReturn(new JSONObject());
     // Initialize mocks
-    Mockito.doNothing().when(mockDao).push("{}");
+    when(mockWriter.isConnectionBroken()).thenReturn(false);
+    Mockito.doNothing().when(mockWriter).writeBuildLog(anyInt());
 
-    //when(mockDao.push("{}");
-    when(mockDao.getIndexerType()).thenReturn(IndexerType.REDIS);
-    when(mockDao.getDescription()).thenReturn("localhost:8080");
-
-    notifier = new MockLogstashNotifier(3, false, mockDao);
+    notifier = new MockLogstashNotifier(3, false, mockWriter);
   }
 
   @After
   public void after() throws Exception {
     verifyNoMoreInteractions(mockBuild);
-    verifyNoMoreInteractions(mockTestResultAction);
-    verifyNoMoreInteractions(mockProject);
     verifyNoMoreInteractions(mockLauncher);
     verifyNoMoreInteractions(mockListener);
-    verifyNoMoreInteractions(mockLogger);
-    verifyNoMoreInteractions(mockDao);
+    verifyNoMoreInteractions(mockWriter);
+    errorStream.close();
   }
 
   @Test
@@ -124,37 +92,20 @@ public class LogstashNotifierTest {
     // Verify results
     assertTrue("Build should not be marked as failure", result);
 
-    verify(mockBuild).getId();
-    verify(mockBuild, times(2)).getResult();
-    verify(mockBuild, times(2)).getParent();
-    verify(mockBuild, times(2)).getDisplayName();
-    verify(mockBuild).getFullDisplayName();
-    verify(mockBuild).getDescription();
-    verify(mockBuild).getUrl();
-    verify(mockBuild).getAction(AbstractTestResultAction.class);
-    verify(mockBuild).getBuiltOn();
-    verify(mockBuild, times(2)).getNumber();
-    verify(mockBuild).getTimestamp();
-    verify(mockBuild, times(3)).getRootBuild();
-    verify(mockBuild).getBuildVariables();
-    verify(mockBuild).getLog(3);
-    verify(mockBuild).getEnvironments();
+    verify(mockListener).getLogger();
+    verify(mockWriter).writeBuildLog(3);
+    verify(mockWriter).isConnectionBroken();
 
-    verify(mockTestResultAction).getTotalCount();
-    verify(mockTestResultAction).getSkipCount();
-    verify(mockTestResultAction).getFailCount();
-    verify(mockTestResultAction, times(2)).getFailedTests();
+    assertEquals("Errors were written", "", errorBuffer.toString());
 
-    verify(mockProject, times(2)).getName();
-
-    verify(mockDao).buildPayload(Matchers.any(BuildData.class), Matchers.eq("http://my-jenkins-url"), Matchers.anyListOf(String.class));
-    verify(mockDao).push("{}");
   }
 
   @Test
-  public void performFailNullDaoDoNotFailBuild() throws Exception {
+  public void performBadWriterDoNotFailBuild() throws Exception {
     // Initialize mocks
-    notifier = new MockLogstashNotifier(3, false, null);
+    when(mockWriter.isConnectionBroken()).thenReturn(true);
+
+    notifier = new MockLogstashNotifier(3, false, mockWriter);
 
     // Unit under test
     boolean result = notifier.perform(mockBuild, mockLauncher, mockListener);
@@ -162,109 +113,74 @@ public class LogstashNotifierTest {
     // Verify results
     assertTrue("Build should not be marked as failure", result);
 
-    verify(mockListener, times(2)).getLogger();
+    verify(mockListener).getLogger();
+    verify(mockWriter).writeBuildLog(3);
+    verify(mockWriter).isConnectionBroken();
 
-    verify(mockLogger).println(contains("DoaTestInstantiationException"));
-    verify(mockLogger).println("[logstash-plugin]: Unable to instantiate LogstashIndexerDao with current configuration.");
+    assertEquals("Error was not written", "Mocked Constructor failure", errorBuffer.toString());
   }
 
   @Test
-  public void performFailNullDaoDoFailBuild() throws Exception {
+  public void performBadWriterDoFailBuild() throws Exception {
     // Initialize mocks
-    notifier = new MockLogstashNotifier(3, true, null);
+    when(mockWriter.isConnectionBroken()).thenReturn(true);
+
+    notifier = new MockLogstashNotifier(3, true, mockWriter);
+
+    // Unit under test
+    boolean result = notifier.perform(mockBuild, mockLauncher, mockListener);
+
+
+    // Verify results
+    assertFalse("Build should be marked as failure", result);
+
+    verify(mockListener).getLogger();
+    verify(mockWriter).writeBuildLog(3);
+    verify(mockWriter, times(2)).isConnectionBroken();
+    assertEquals("Error was not written", "Mocked Constructor failure", errorBuffer.toString());
+  }
+
+  @Test
+  public void performWriteFailDoFailBuild() throws Exception {
+    final String errorMsg = "[logstash-plugin]: Unable to serialize log data.\n" +
+      "java.io.IOException: Unable to read log file\n";
+
+    // Initialize mocks
+    when(mockWriter.isConnectionBroken()).thenReturn(false).thenReturn(false).thenReturn(true);
+    Mockito.doAnswer(new Answer() {
+      @Override
+      public Object answer(InvocationOnMock invocationOnMock) throws Throwable {
+        if(!mockWriter.isConnectionBroken()) {
+          errorBuffer.write(errorMsg.getBytes());
+        }
+        return null;
+      }
+    }).when(mockWriter).writeBuildLog(anyInt());
+
+    notifier = new MockLogstashNotifier(3, true, mockWriter);
+    assertEquals("Errors were written", "", errorBuffer.toString());
 
     // Unit under test
     boolean result = notifier.perform(mockBuild, mockLauncher, mockListener);
 
     // Verify results
-    assertFalse("Build should have been marked as failure", result);
+    assertFalse("Build should be marked as failure", result);
 
-    verify(mockListener, times(2)).getLogger();
+    verify(mockListener).getLogger();
+    verify(mockWriter).writeBuildLog(3);
+    verify(mockWriter, times(3)).isConnectionBroken();
 
-    verify(mockLogger).println(contains("DoaTestInstantiationException"));
-    verify(mockLogger).println("[logstash-plugin]: Unable to instantiate LogstashIndexerDao with current configuration.");
+    assertThat("Wrong error message", errorBuffer.toString(), containsString(errorMsg));
   }
 
   @Test
-  public void performSuccessNoLogData() throws Exception {
+  public void performAllLines() throws Exception {
     // Initialize mocks
-    when(mockBuild.getLog(Matchers.anyInt())).thenThrow(new IOException("Unable to read log file"));
+    when(mockWriter.isConnectionBroken()).thenReturn(false);
 
-    // Unit under test
-    boolean result = notifier.perform(mockBuild, mockLauncher, mockListener);
+    Mockito.doNothing().when(mockWriter).writeBuildLog(anyInt());
 
-    // Verify results
-    assertTrue("Build should not be marked as failure", result);
-
-    verify(mockBuild).getId();
-    verify(mockBuild, times(2)).getResult();
-    verify(mockBuild, times(2)).getParent();
-    verify(mockBuild, times(2)).getDisplayName();
-    verify(mockBuild).getFullDisplayName();
-    verify(mockBuild).getDescription();
-    verify(mockBuild).getUrl();
-    verify(mockBuild).getAction(AbstractTestResultAction.class);
-    verify(mockBuild).getBuiltOn();
-    verify(mockBuild, times(2)).getNumber();
-    verify(mockBuild).getTimestamp();
-    verify(mockBuild, times(3)).getRootBuild();
-    verify(mockBuild).getBuildVariables();
-    verify(mockBuild).getLog(3);
-    verify(mockBuild).getEnvironments();
-
-    verify(mockTestResultAction).getTotalCount();
-    verify(mockTestResultAction).getSkipCount();
-    verify(mockTestResultAction).getFailCount();
-    verify(mockTestResultAction, times(2)).getFailedTests();
-
-    verify(mockProject, times(2)).getName();
-
-    verify(mockListener, times(2)).getLogger();
-
-    verify(mockLogger).println("[logstash-plugin]: Unable to serialize log data.");
-    verify(mockLogger).println(Matchers.startsWith("java.io.IOException: Unable to read log file"));
-
-    verify(mockDao).buildPayload(Matchers.any(BuildData.class), Matchers.eq("http://my-jenkins-url"), Matchers.anyListOf(String.class));
-    verify(mockDao).push("{}");
-  }
-
-  @Test
-  public void performSuccessNoTestResults() throws Exception {
-    // Initialize mocks
-    when(mockBuild.getAction(AbstractTestResultAction.class)).thenReturn(null);
-
-    // Unit under test
-    boolean result = notifier.perform(mockBuild, mockLauncher, mockListener);
-
-    // Verify results
-    assertTrue("Build should not be marked as failure", result);
-
-    verify(mockBuild).getId();
-    verify(mockBuild, times(2)).getResult();
-    verify(mockBuild, times(2)).getParent();
-    verify(mockBuild, times(2)).getDisplayName();
-    verify(mockBuild).getFullDisplayName();
-    verify(mockBuild).getDescription();
-    verify(mockBuild).getUrl();
-    verify(mockBuild).getAction(AbstractTestResultAction.class);
-    verify(mockBuild).getBuiltOn();
-    verify(mockBuild, times(2)).getNumber();
-    verify(mockBuild).getTimestamp();
-    verify(mockBuild, times(3)).getRootBuild();
-    verify(mockBuild).getBuildVariables();
-    verify(mockBuild).getLog(3);
-    verify(mockBuild).getEnvironments();
-
-    verify(mockProject, times(2)).getName();
-
-    verify(mockDao).buildPayload(Matchers.any(BuildData.class), Matchers.eq("http://my-jenkins-url"), Matchers.anyListOf(String.class));
-    verify(mockDao).push("{}");
-  }
-
-  @Test
-  public void performFailUnableToPushDoNotFailBuild() throws Exception {
-    // Initialize mocks
-    Mockito.doThrow(new IOException()).when(mockDao).push("{}");
+    notifier = new MockLogstashNotifier(-1, true, mockWriter);
 
     // Unit under test
     boolean result = notifier.perform(mockBuild, mockLauncher, mockListener);
@@ -272,83 +188,32 @@ public class LogstashNotifierTest {
     // Verify results
     assertTrue("Build should not be marked as failure", result);
 
-    verify(mockBuild).getId();
-    verify(mockBuild, times(2)).getResult();
-    verify(mockBuild, times(2)).getParent();
-    verify(mockBuild, times(2)).getDisplayName();
-    verify(mockBuild).getFullDisplayName();
-    verify(mockBuild).getDescription();
-    verify(mockBuild).getUrl();
-    verify(mockBuild).getAction(AbstractTestResultAction.class);
-    verify(mockBuild).getBuiltOn();
-    verify(mockBuild, times(2)).getNumber();
-    verify(mockBuild).getTimestamp();
-    verify(mockBuild, times(3)).getRootBuild();
-    verify(mockBuild).getBuildVariables();
-    verify(mockBuild).getLog(3);
-    verify(mockBuild).getEnvironments();
+    verify(mockListener).getLogger();
+    verify(mockWriter).writeBuildLog(-1);
+    verify(mockWriter, times(2)).isConnectionBroken();
 
-    verify(mockTestResultAction).getTotalCount();
-    verify(mockTestResultAction).getSkipCount();
-    verify(mockTestResultAction).getFailCount();
-    verify(mockTestResultAction, times(2)).getFailedTests();
-
-    verify(mockProject, times(2)).getName();
-
-    verify(mockListener, times(2)).getLogger();
-
-    verify(mockLogger).println(contains("IOException"));
-    verify(mockLogger).println("[logstash-plugin]: Failed to send log data to REDIS:localhost:8080.");
-
-    verify(mockDao).buildPayload(Matchers.any(BuildData.class), Matchers.eq("http://my-jenkins-url"), Matchers.anyListOf(String.class));
-    verify(mockDao).push("{}");
-    verify(mockDao).getIndexerType();
-    verify(mockDao).getDescription();
+    assertEquals("Errors were written", "", errorBuffer.toString());
   }
 
   @Test
-  public void performFailUnableToPushDoFailBuild() throws Exception {
+  public void performZeroLines() throws Exception {
     // Initialize mocks
-    notifier = new MockLogstashNotifier(3, true, mockDao);
-    Mockito.doThrow(new IOException()).when(mockDao).push("{}");
+    when(mockWriter.isConnectionBroken()).thenReturn(false);
+
+    Mockito.doNothing().when(mockWriter).writeBuildLog(anyInt());
+
+    notifier = new MockLogstashNotifier(0, true, mockWriter);
 
     // Unit under test
     boolean result = notifier.perform(mockBuild, mockLauncher, mockListener);
 
     // Verify results
-    assertFalse("Build should have been marked as failure", result);
+    assertTrue("Build should not be marked as failure", result);
 
-    verify(mockBuild).getId();
-    verify(mockBuild, times(2)).getResult();
-    verify(mockBuild, times(2)).getParent();
-    verify(mockBuild, times(2)).getDisplayName();
-    verify(mockBuild).getFullDisplayName();
-    verify(mockBuild).getDescription();
-    verify(mockBuild).getUrl();
-    verify(mockBuild).getAction(AbstractTestResultAction.class);
-    verify(mockBuild).getBuiltOn();
-    verify(mockBuild, times(2)).getNumber();
-    verify(mockBuild).getTimestamp();
-    verify(mockBuild, times(3)).getRootBuild();
-    verify(mockBuild).getBuildVariables();
-    verify(mockBuild).getLog(3);
-    verify(mockBuild).getEnvironments();
+    verify(mockListener).getLogger();
+    verify(mockWriter).writeBuildLog(0);
+    verify(mockWriter, times(2)).isConnectionBroken();
 
-    verify(mockTestResultAction).getTotalCount();
-    verify(mockTestResultAction).getSkipCount();
-    verify(mockTestResultAction).getFailCount();
-    verify(mockTestResultAction, times(2)).getFailedTests();
-
-    verify(mockProject, times(2)).getName();
-
-    verify(mockListener, times(2)).getLogger();
-
-    verify(mockLogger).println(contains("IOException"));
-    verify(mockLogger).println("[logstash-plugin]: Failed to send log data to REDIS:localhost:8080.");
-
-    verify(mockDao).buildPayload(Matchers.any(BuildData.class), Matchers.eq("http://my-jenkins-url"), Matchers.anyListOf(String.class));
-    verify(mockDao).push("{}");
-    verify(mockDao).getIndexerType();
-    verify(mockDao).getDescription();
+    assertEquals("Errors were written", "", errorBuffer.toString());
   }
 }

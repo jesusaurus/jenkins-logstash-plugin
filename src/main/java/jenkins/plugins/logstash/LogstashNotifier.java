@@ -34,17 +34,9 @@ import hudson.tasks.BuildStepMonitor;
 import hudson.tasks.Notifier;
 import hudson.tasks.Publisher;
 
-import java.io.IOException;
-import java.util.Collections;
-import java.util.Date;
-import java.util.List;
+import java.io.OutputStream;
+import java.io.PrintStream;
 
-import jenkins.model.Jenkins;
-import jenkins.plugins.logstash.persistence.BuildData;
-import jenkins.plugins.logstash.persistence.LogstashIndexerDao;
-import net.sf.json.JSONObject;
-
-import org.apache.commons.lang.exception.ExceptionUtils;
 import org.kohsuke.stapler.DataBoundConstructor;
 
 /**
@@ -66,51 +58,16 @@ public class LogstashNotifier extends Notifier {
 
   @Override
   public boolean perform(AbstractBuild<?, ?> build, Launcher launcher, BuildListener listener) {
-    LogstashIndexerDao dao;
-    try {
-      dao = getDao();
-    } catch (InstantiationException e) {
-      listener.getLogger().println(ExceptionUtils.getStackTrace(e));
-      listener.getLogger().println("[logstash-plugin]: Unable to instantiate LogstashIndexerDao with current configuration.");
-      return !failBuild;
-    }
+    PrintStream errorPrintStream = listener.getLogger();
+    LogstashWriter logstash = getLogStashWriter(build, errorPrintStream);
+    logstash.writeBuildLog(maxLines);
 
-    // FIXME: build.getLog() won't have the last few lines like "Finished: SUCCESS" because this hasn't returned yet...
-    List<String> logLines;
-    try {
-      if (maxLines < 0) {
-        int length = (int) build.getLogText().length();
-        logLines = build.getLog(length);
-      } else {
-        logLines = build.getLog(maxLines);
-      }
-    } catch (IOException e) {
-      logLines = Collections.emptyList();
-      listener.getLogger().println(ExceptionUtils.getStackTrace(e));
-      listener.getLogger().println("[logstash-plugin]: Unable to serialize log data.");
-      // Continue on without log information
-    }
-
-    BuildData buildData = new BuildData(build, new Date());
-    JSONObject payload = dao.buildPayload(buildData, getJenkinsUrl(), logLines);
-
-    try {
-      dao.push(payload.toString());
-    } catch (IOException e) {
-      listener.getLogger().println(ExceptionUtils.getStackTrace(e));
-      listener.getLogger().println("[logstash-plugin]: Failed to send log data to " + dao.getIndexerType() + ":" + dao.getDescription() + ".");
-      return !failBuild;
-    }
-    return true;
+    return !(failBuild && logstash.isConnectionBroken());
   }
 
-  // Method to encapsulate calls to Jenkins.getInstance() for unit-testing
-  LogstashIndexerDao getDao() throws InstantiationException {
-    return LogstashInstallation.getLogstashDescriptor().getIndexerDao();
-  }
-
-  String getJenkinsUrl() {
-    return Jenkins.getInstance().getRootUrl();
+  // Method to encapsulate calls for unit-testing
+  LogstashWriter getLogStashWriter(AbstractBuild<?, ?> build, OutputStream errorStream) {
+    return new LogstashWriter(build, errorStream);
   }
 
   public BuildStepMonitor getRequiredMonitorService() {
