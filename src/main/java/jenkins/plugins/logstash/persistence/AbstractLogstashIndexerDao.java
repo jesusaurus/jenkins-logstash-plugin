@@ -69,12 +69,7 @@ abstract class AbstractLogstashIndexerDao implements LogstashIndexerDao {
   }
 
   @Override
-  public String getHost() {
-    return host;
-  }
-
-  @Override
-  public int getPort() {
-    return port;
+  public String getDescription() {
+    return this.host + ":" + this.port;
   }
 }

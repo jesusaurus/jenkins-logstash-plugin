@@ -29,12 +29,12 @@ import hudson.console.PlainTextConsoleOutputStream;
 
 import java.io.IOException;
 import java.io.OutputStream;
-import java.io.PrintStream;
 import java.util.Arrays;
 
 import jenkins.plugins.logstash.persistence.BuildData;
 import jenkins.plugins.logstash.persistence.LogstashIndexerDao;
 import net.sf.json.JSONObject;
+import org.apache.commons.lang.exception.ExceptionUtils;
 
 /**
  * Output stream that writes each line to the provided delegate output stream
@@ -45,11 +45,11 @@ import net.sf.json.JSONObject;
  */
 public class LogstashOutputStream extends PlainTextConsoleOutputStream {
 
-  protected OutputStream delegate;
-  protected LogstashIndexerDao dao;
-  protected BuildData buildData;
-  protected String jenkinsUrl;
-  protected boolean connFailed = false;
+  final OutputStream delegate;
+  final LogstashIndexerDao dao;
+  final BuildData buildData;
+  final String jenkinsUrl;
+  Boolean connFailed = false;
 
   public LogstashOutputStream(OutputStream delegate, LogstashIndexerDao dao, BuildData buildData, String jenkinsUrl) {
     super(delegate);
@@ -59,7 +59,9 @@ public class LogstashOutputStream extends PlainTextConsoleOutputStream {
     this.jenkinsUrl = jenkinsUrl;
 
     if (dao == null) {
-      String msg = "[logstash-plugin]: Unable to instantiate LogstashIndexerDao with current configuration.\n";
+      connFailed = true;
+      String msg = "[logstash-plugin]: Unable to instantiate LogstashIndexerDao with current configuration.\n" +
+        "[logstash-plugin]: No Further logs will be sent.\n";
 
       try {
         delegate.write(msg.getBytes());
@@ -74,16 +76,22 @@ public class LogstashOutputStream extends PlainTextConsoleOutputStream {
     delegate.write(b, 0, len);
     delegate.flush();
 
+    if (connFailed) {
+      return;
+    }
+
     String line = new String(b, 0, len).trim();
     line = ConsoleNote.removeNotes(line);
 
-    if (!line.isEmpty() && dao != null && !connFailed) {
+    if (!line.isEmpty()) {
       JSONObject payload = dao.buildPayload(buildData, jenkinsUrl, Arrays.asList(line));
-      long result = dao.push(payload.toString(), new PrintStream(delegate));
-
-      if (result < 0) {
-        String msg = "[logstash-plugin]: Failed to send log data to " + dao.getIndexerType() + ":" + dao.getHost() + ":" + dao.getPort() + ".\n";
+      try {
+        dao.push(payload.toString());
+      } catch (IOException e) {
         connFailed = true;
+        String msg = "[logstash-plugin]: Failed to send log data to " + dao.getIndexerType() + ":" + dao.getDescription() + ".\n" +
+          "[logstash-plugin]: No Further logs will be sent.\n" +
+          ExceptionUtils.getStackTrace(e);
         delegate.write(msg.getBytes());
         delegate.flush();
       }

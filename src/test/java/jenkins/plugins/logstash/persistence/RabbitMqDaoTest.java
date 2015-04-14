@@ -1,12 +1,14 @@
 package jenkins.plugins.logstash.persistence;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.*;
 
-import java.io.PrintStream;
+import java.io.IOException;
 import java.net.SocketException;
 
 import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang.exception.ExceptionUtils;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -26,7 +28,6 @@ public class RabbitMqDaoTest {
   @Mock ConnectionFactory mockPool;
   @Mock Connection mockConnection;
   @Mock Channel mockChannel;
-  @Mock PrintStream mockLogger;
 
   RabbitMqDao createDao(String host, int port, String key, String username, String password) {
     RabbitMqDao factory = new RabbitMqDao(mockPool, host, port, key, username, password);
@@ -57,7 +58,6 @@ public class RabbitMqDaoTest {
     verifyNoMoreInteractions(mockPool);
     verifyNoMoreInteractions(mockConnection);
     verifyNoMoreInteractions(mockChannel);
-    verifyNoMoreInteractions(mockLogger);
   }
 
   @Test(expected = IllegalArgumentException.class)
@@ -113,52 +113,61 @@ public class RabbitMqDaoTest {
     assertEquals("Wrong password", "password", dao.password);
   }
 
-  @Test
+  @Test(expected = IOException.class)
   public void pushFailUnauthorized() throws Exception {
     // Initialize mocks
     when(mockPool.newConnection()).thenThrow(new AuthenticationFailureException("Not authorized"));
 
     // Unit under test
-    long result = dao.push("", mockLogger);
+    try {
+      dao.push("");
+    } catch (IOException e) {
+      // Verify results
+      verify(mockPool).newConnection();
+      assertEquals("wrong error message",
+        "AuthenticationFailureException: Not authorized", ExceptionUtils.getMessage(e));
+      throw e;
+    }
 
-    // Verify results
-    assertEquals("Return code should be an error", -1L, result);
-
-    verify(mockPool).newConnection();
-    verify(mockLogger).println(Matchers.startsWith("com.rabbitmq.client.AuthenticationFailureException: Not authorized"));
   }
 
-  @Test
-  public void pushFailCantConnect() throws Exception {
+  @Test(expected = IOException.class)
+  public void pushFailCannotConnect() throws Exception {
     // Initialize mocks
     when(mockPool.newConnection()).thenThrow(new SocketException("Connection refused"));
 
     // Unit under test
-    long result = dao.push("", mockLogger);
-
-    // Verify results
-    assertEquals("Return code should be an error", -1L, result);
-
-    verify(mockPool).newConnection();
-    verify(mockLogger).println(Matchers.startsWith("java.net.SocketException: Connection refused"));
+    try {
+      dao.push("");
+    } catch (IOException e) {
+      // Verify results
+      verify(mockPool).newConnection();
+      assertEquals("wrong error message",
+        "SocketException: Connection refused", ExceptionUtils.getMessage(e));
+      throw e;
+    }
   }
 
-  @Test
+  @Test(expected = IOException.class)
   public void pushFailCantWrite() throws Exception {
     // Initialize mocks
     doThrow(new SocketException("Queue length limit exceeded")).when(mockChannel).basicPublish("", "logstash", null, "{}".getBytes());
 
     // Unit under test
-    long result = dao.push("{}", mockLogger);
-
-    // Verify results
-    assertEquals("Return code should be an error", -1L, result);
-
-    verify(mockPool).newConnection();
-    verify(mockConnection).createChannel();
-    verify(mockChannel).queueDeclare("logstash", true, false, false, null);
-    verify(mockChannel).basicPublish("", "logstash", null, "{}".getBytes());
-    verify(mockLogger).println(Matchers.startsWith("java.net.SocketException: Queue length limit exceeded"));
+    try {
+      dao.push("{}");
+    } catch (IOException e) {
+      // Verify results
+      verify(mockPool).newConnection();
+      verify(mockConnection).createChannel();
+      verify(mockConnection).close();
+      verify(mockChannel).queueDeclare("logstash", true, false, false, null);
+      verify(mockChannel).basicPublish("", "logstash", null, "{}".getBytes());
+      verify(mockChannel).close();
+      assertEquals("wrong error message",
+        "SocketException: Queue length limit exceeded", ExceptionUtils.getMessage(e));
+      throw e;
+    }
   }
 
   @Test
@@ -166,11 +175,9 @@ public class RabbitMqDaoTest {
     String json = "{ 'foo': 'bar' }";
 
     // Unit under test
-    long result = dao.push(json, mockLogger);
+    dao.push(json);
 
     // Verify results
-    assertEquals("Unexpected return code", 1L, result);
-
     verify(mockPool).newConnection();
     verify(mockConnection).createChannel();
     verify(mockConnection).close();
@@ -185,11 +192,9 @@ public class RabbitMqDaoTest {
     dao = createDao("localhost", 5672, "logstash", null, null);
 
     // Unit under test
-    long result = dao.push(json, mockLogger);
+    dao.push(json);
 
     // Verify results
-    assertEquals("Unexpected return code", 1L, result);
-
     verify(mockPool).newConnection();
     verify(mockConnection).createChannel();
     verify(mockConnection).close();

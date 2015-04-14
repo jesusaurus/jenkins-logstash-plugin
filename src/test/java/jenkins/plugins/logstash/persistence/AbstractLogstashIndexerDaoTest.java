@@ -3,7 +3,7 @@ package jenkins.plugins.logstash.persistence;
 import static net.sf.json.test.JSONAssert.assertEquals;
 import static org.mockito.Mockito.when;
 
-import java.io.PrintStream;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 
@@ -69,9 +69,7 @@ public class AbstractLogstashIndexerDaoTest {
         return IndexerType.REDIS;
       }
 
-      public long push(String data, PrintStream logger) {
-        return 0;
-      }
+      public void push(String data) throws IOException {}
     };
   }
 }

@@ -82,6 +82,7 @@ public class LogstashBuildWrapper extends BuildWrapper {
       } catch (IOException e1) {
         e.printStackTrace();
       }
+
     }
 
     BuildData buildData = new BuildData(build, new Date());
@@ -96,11 +97,11 @@ public class LogstashBuildWrapper extends BuildWrapper {
   }
 
   // Method to encapsulate calls to Jenkins.getInstance() for unit-testing
-  protected LogstashIndexerDao getDao() throws InstantiationException {
+  LogstashIndexerDao getDao() throws InstantiationException {
     return LogstashInstallation.getLogstashDescriptor().getIndexerDao();
   }
 
-  protected String getJenkinsUrl() {
+  String getJenkinsUrl() {
     return Jenkins.getInstance().getRootUrl();
   }
 
