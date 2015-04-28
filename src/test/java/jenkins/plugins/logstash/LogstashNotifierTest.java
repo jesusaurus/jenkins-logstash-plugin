@@ -138,6 +138,7 @@ public class LogstashNotifierTest {
     verify(mockBuild, times(3)).getRootBuild();
     verify(mockBuild).getBuildVariables();
     verify(mockBuild).getLog(3);
+    verify(mockBuild).getEnvironments();
 
     verify(mockTestResultAction).getTotalCount();
     verify(mockTestResultAction).getSkipCount();
@@ -209,6 +210,7 @@ public class LogstashNotifierTest {
     verify(mockBuild, times(3)).getRootBuild();
     verify(mockBuild).getBuildVariables();
     verify(mockBuild).getLog(3);
+    verify(mockBuild).getEnvironments();
 
     verify(mockTestResultAction).getTotalCount();
     verify(mockTestResultAction).getSkipCount();
@@ -251,6 +253,7 @@ public class LogstashNotifierTest {
     verify(mockBuild, times(3)).getRootBuild();
     verify(mockBuild).getBuildVariables();
     verify(mockBuild).getLog(3);
+    verify(mockBuild).getEnvironments();
 
     verify(mockProject, times(2)).getName();
 
@@ -283,6 +286,7 @@ public class LogstashNotifierTest {
     verify(mockBuild, times(3)).getRootBuild();
     verify(mockBuild).getBuildVariables();
     verify(mockBuild).getLog(3);
+    verify(mockBuild).getEnvironments();
 
     verify(mockTestResultAction).getTotalCount();
     verify(mockTestResultAction).getSkipCount();
@@ -328,6 +332,7 @@ public class LogstashNotifierTest {
     verify(mockBuild, times(3)).getRootBuild();
     verify(mockBuild).getBuildVariables();
     verify(mockBuild).getLog(3);
+    verify(mockBuild).getEnvironments();
 
     verify(mockTestResultAction).getTotalCount();
     verify(mockTestResultAction).getSkipCount();
