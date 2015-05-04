@@ -20,7 +20,6 @@ import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.runners.MockitoJUnitRunner;
 
-@SuppressWarnings("rawtypes")
 @RunWith(MockitoJUnitRunner.class)
 public class LogstashBuildWrapperTest {
   // Extension of the unit under test that avoids making calls to statics or constructors

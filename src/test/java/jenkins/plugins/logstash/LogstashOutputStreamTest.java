@@ -1,6 +1,8 @@
 package jenkins.plugins.logstash;
 
+import static org.hamcrest.core.StringContains.containsString;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.*;
 
 import java.io.ByteArrayOutputStream;
@@ -63,12 +65,11 @@ public class LogstashOutputStreamTest {
 
   @Test
   public void eolSuccessConnectionBroken() throws Exception {
-    String msg = "test";
     LogstashOutputStream los = new LogstashOutputStream(buffer, mockWriter);
 
-    String exMessage = "[logstash-plugin]: Failed to send log data to REDIS:localhost:8080.\n" +
+    String msg = "[logstash-plugin]: Failed to send log data to REDIS:localhost:8080.\n" +
       "[logstash-plugin]: No Further logs will be sent.\n" +
-      "java.io.IOException: BOOM!\n";
+      "java.io.IOException: BOOM!";
 
     buffer.reset();
 
@@ -94,7 +95,9 @@ public class LogstashOutputStreamTest {
     los.eol(msg.getBytes(), msg.length());
 
     // Verify results
-    assertEquals("Results don't match", msg, buffer.toString());
+    for (String msgLine : msg.split("\n")) {
+      assertThat("Results don't match", buffer.toString(), containsString(msgLine));
+    }
 
     //Verify calls were made to the dao logging twice, not three times.
     verify(mockWriter, times(2)).write(msg);

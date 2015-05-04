@@ -8,7 +8,6 @@ import jenkins.plugins.logstash.persistence.BuildData;
 import jenkins.plugins.logstash.persistence.LogstashIndexerDao;
 import jenkins.plugins.logstash.persistence.LogstashIndexerDao.IndexerType;
 import net.sf.json.JSONObject;
-import org.apache.commons.lang.StringUtils;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -25,7 +24,6 @@ import java.util.GregorianCalendar;
 import java.util.List;
 
 import static org.hamcrest.core.StringContains.containsString;
-import static org.hamcrest.core.IsCollectionContaining.hasItem;
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.*;
 
@@ -188,7 +186,6 @@ public class LogstashWriterTest {
     LogstashWriter writer = createLogstashWriter(mockBuild, errorBuffer, "http://my-jenkins-url", null, null);
     assertTrue("Connection not broken", writer.isConnectionBroken());
 
-    String msg = "test";
     errorBuffer.reset();
 
     // Unit under test
@@ -298,7 +295,7 @@ public class LogstashWriterTest {
     verify(mockDao).buildPayload(eq(mockBuildData), eq("http://my-jenkins-url"), logLinesCaptor.capture());
     List<String> actualLogLines = logLinesCaptor.getValue();
 
-    assertEquals("The exception was not sent to Logstash", actualLogLines.get(0), expectedErrorLines.get(0));
-    assertEquals("The exception was not sent to Logstash", actualLogLines.get(1), expectedErrorLines.get(1));
+    assertThat("The exception was not sent to Logstash", actualLogLines.get(0), containsString(expectedErrorLines.get(0)));
+    assertThat("The exception was not sent to Logstash", actualLogLines.get(1), containsString(expectedErrorLines.get(1)));
   }
 }
