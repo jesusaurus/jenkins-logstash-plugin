@@ -33,8 +33,6 @@ import hudson.util.FormValidation;
 import java.util.List;
 
 import jenkins.model.Jenkins;
-import jenkins.plugins.logstash.persistence.IndexerDaoFactory;
-import jenkins.plugins.logstash.persistence.LogstashIndexerDao;
 import jenkins.plugins.logstash.persistence.LogstashIndexerDao.IndexerType;
 import net.sf.json.JSONObject;
 
@@ -92,13 +90,6 @@ public class LogstashInstallation extends ToolInstallation {
     @Override
     public String getDisplayName() {
       return Messages.DisplayName();
-    }
-
-    /**
-     * @see IndexerDaoFactory#getInstance(IndexerType, String, Integer, String, String, String)
-     */
-    public LogstashIndexerDao getIndexerDao() throws InstantiationException {
-      return IndexerDaoFactory.getInstance(type, host, port, key, username, password);
     }
 
     /*

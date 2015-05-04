@@ -34,13 +34,7 @@ import hudson.tasks.BuildWrapperDescriptor;
 
 import java.io.IOException;
 import java.io.OutputStream;
-import java.util.Date;
 
-import jenkins.model.Jenkins;
-import jenkins.plugins.logstash.persistence.BuildData;
-import jenkins.plugins.logstash.persistence.LogstashIndexerDao;
-
-import org.apache.commons.lang.exception.ExceptionUtils;
 import org.kohsuke.stapler.DataBoundConstructor;
 
 /**
@@ -50,8 +44,6 @@ import org.kohsuke.stapler.DataBoundConstructor;
  * @author K Jonathan Harker
  */
 public class LogstashBuildWrapper extends BuildWrapper {
-
-  private transient LogstashOutputStream outputStream;
 
   /**
    * Create a new {@link LogstashBuildWrapper}.
@@ -63,7 +55,7 @@ public class LogstashBuildWrapper extends BuildWrapper {
    * {@inheritDoc}
    */
   @Override
-  public Environment setUp(@SuppressWarnings("rawtypes") AbstractBuild build, Launcher launcher, BuildListener listener) throws IOException, InterruptedException {
+  public Environment setUp(AbstractBuild build, Launcher launcher, BuildListener listener) throws IOException, InterruptedException {
 
     return new Environment() {};
   }
@@ -72,37 +64,19 @@ public class LogstashBuildWrapper extends BuildWrapper {
    * {@inheritDoc}
    */
   @Override
-  public OutputStream decorateLogger(@SuppressWarnings("rawtypes") AbstractBuild build, OutputStream logger) {
-    LogstashIndexerDao dao = null;
-    try {
-      dao = getDao();
-    } catch (InstantiationException e) {
-      try {
-        logger.write(ExceptionUtils.getStackTrace(e).getBytes());
-      } catch (IOException e1) {
-        e.printStackTrace();
-      }
+  public OutputStream decorateLogger(AbstractBuild build, OutputStream logger) {
+    LogstashWriter logstash = getLogStashWriter(build, logger);
 
-    }
-
-    BuildData buildData = new BuildData(build, new Date());
-    String jenkinsUrl = getJenkinsUrl();
-    outputStream = new LogstashOutputStream(logger, dao, buildData, jenkinsUrl);
-
-    return outputStream;
+    return new LogstashOutputStream(logger, logstash);
   }
 
   public DescriptorImpl getDescriptor() {
     return (DescriptorImpl) super.getDescriptor();
   }
 
-  // Method to encapsulate calls to Jenkins.getInstance() for unit-testing
-  LogstashIndexerDao getDao() throws InstantiationException {
-    return LogstashInstallation.getLogstashDescriptor().getIndexerDao();
-  }
-
-  String getJenkinsUrl() {
-    return Jenkins.getInstance().getRootUrl();
+  // Method to encapsulate calls for unit-testing
+  LogstashWriter getLogStashWriter(AbstractBuild<?, ?> build, OutputStream errorStream) {
+    return new LogstashWriter(build, errorStream);
   }
 
   /**
