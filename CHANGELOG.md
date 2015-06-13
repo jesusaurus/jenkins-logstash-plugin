@@ -1,3 +1,8 @@
+1.1.0
+-----
+* Add Syslog support
+* Requires Java runtime 7 or newer
+
 1.0.4
 -----
 * Add support for pushing directly to Elasticsearch
