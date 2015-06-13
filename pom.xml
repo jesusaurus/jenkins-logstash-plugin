@@ -37,7 +37,7 @@
 
   <artifactId>logstash</artifactId>
   <packaging>hpi</packaging>
-  <version>1.0.5-SNAPSHOT</version>
+  <version>1.1.0-SNAPSHOT</version>
   <name>Logstash</name>
   <description>A Logstash agent to send Jenkins logs to a Logstash indexer.</description>
   <url>http://wiki.jenkins-ci.org/display/JENKINS/Logstash+Plugin</url>
@@ -96,8 +96,8 @@
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-compiler-plugin</artifactId>
         <configuration>
-          <source>1.6</source>
-          <target>1.6</target>
+          <source>1.7</source>
+          <target>1.7</target>
         </configuration>
       </plugin>
 
