@@ -80,6 +80,14 @@
       <type>jar</type>
       <scope>test</scope>
     </dependency>
+
+    <dependency>
+      <groupId>com.cloudbees</groupId>
+      <artifactId>syslog-java-client</artifactId>
+      <version>1.0.6</version>
+      <type>jar</type>
+      <scope>compile</scope>
+    </dependency>
   </dependencies>
 
   <build>
