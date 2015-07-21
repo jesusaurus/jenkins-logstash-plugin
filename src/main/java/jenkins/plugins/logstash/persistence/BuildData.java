@@ -101,7 +101,7 @@ public class BuildData {
   protected String buildLabel;
   protected int buildNum;
   protected long buildDuration;
-  protected String timestamp;
+  protected transient String timestamp; // This belongs in the root object
   protected String rootProjectName;
   protected String rootProjectDisplayName;
   protected int rootBuildNum;
