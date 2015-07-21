@@ -71,7 +71,8 @@ public class LogstashNotifier extends Notifier {
   }
 
   public BuildStepMonitor getRequiredMonitorService() {
-    return BuildStepMonitor.BUILD;
+    // We don't call Run#getPreviousBuild() so no external synchronization between builds is required
+    return BuildStepMonitor.NONE;
   }
 
   @Override

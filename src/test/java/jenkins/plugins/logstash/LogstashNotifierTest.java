@@ -3,10 +3,11 @@ package jenkins.plugins.logstash;
 import static org.hamcrest.core.StringContains.containsString;
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.*;
-
 import hudson.Launcher;
 import hudson.model.BuildListener;
 import hudson.model.AbstractBuild;
+import hudson.tasks.BuildStepMonitor;
+import hudson.tasks.Notifier;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -215,5 +216,16 @@ public class LogstashNotifierTest {
     verify(mockWriter, times(2)).isConnectionBroken();
 
     assertEquals("Errors were written", "", errorBuffer.toString());
+  }
+
+  @Test
+  public void getRequiredMonitorService() throws Exception {
+    Notifier notifier = new LogstashNotifier(1, false);
+
+    // Unit under test
+    BuildStepMonitor synchronizationMonitor = notifier.getRequiredMonitorService();
+
+    // Verify results
+    assertEquals("External synchronization between builds is not required", BuildStepMonitor.NONE, synchronizationMonitor);
   }
 }
