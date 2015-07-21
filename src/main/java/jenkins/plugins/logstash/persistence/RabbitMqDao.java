@@ -75,20 +75,49 @@ public class RabbitMqDao extends AbstractLogstashIndexerDao {
       connection = pool.newConnection();
       channel = connection.createChannel();
 
-      channel.queueDeclare(key, true, false, false, null);
+      // Ensure the queue exists
+      try {
+        channel.queueDeclarePassive(key);
+      } catch (IOException e) {
+        // The queue does not exist and the channel has been closed
+        finalizeChannel(channel);
+
+        // Create the queue
+        channel = connection.createChannel();
+        channel.queueDeclare(key, true, false, false, null);
+      }
+
       channel.basicPublish("", key, null, data.getBytes());
     } finally {
-      if (channel != null) {
-        channel.close();
-      }
-      if (connection != null) {
-        connection.close();
-      }
+      finalizeChannel(channel);
+      finalizeConnection(connection);
     }
   }
 
   @Override
   public IndexerType getIndexerType() {
     return IndexerType.RABBIT_MQ;
+  }
+
+  private void finalizeConnection(Connection connection) {
+    if (connection != null && connection.isOpen()) {
+      try {
+        connection.close();
+      } catch (IOException e) {
+        // This shouldn't happen but if it does there's nothing we can do
+        e.printStackTrace();
+      }
+    }
+  }
+
+  private void finalizeChannel(Channel channel) {
+    if (channel != null && channel.isOpen()) {
+      try {
+        channel.close();
+      } catch (IOException e) {
+        // This shouldn't happen but if it does there's nothing we can do
+        e.printStackTrace();
+      }
+    }
   }
 }

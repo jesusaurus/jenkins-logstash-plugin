@@ -49,6 +49,9 @@ public class RabbitMqDaoTest {
     when(mockPool.newConnection()).thenReturn(mockConnection);
 
     when(mockConnection.createChannel()).thenReturn(mockChannel);
+    when(mockConnection.isOpen()).thenReturn(true);
+
+    when(mockChannel.isOpen()).thenReturn(true);
   }
 
   @After
@@ -158,9 +161,11 @@ public class RabbitMqDaoTest {
       // Verify results
       verify(mockPool).newConnection();
       verify(mockConnection).createChannel();
+      verify(mockConnection).isOpen();
       verify(mockConnection).close();
-      verify(mockChannel).queueDeclare("logstash", true, false, false, null);
+      verify(mockChannel).queueDeclarePassive("logstash");
       verify(mockChannel).basicPublish("", "logstash", null, "{}".getBytes());
+      verify(mockChannel).isOpen();
       verify(mockChannel).close();
       assertEquals("wrong error message",
         "SocketException: Queue length limit exceeded", ExceptionUtils.getMessage(e));
@@ -178,9 +183,11 @@ public class RabbitMqDaoTest {
     // Verify results
     verify(mockPool).newConnection();
     verify(mockConnection).createChannel();
+    verify(mockConnection).isOpen();
     verify(mockConnection).close();
-    verify(mockChannel).queueDeclare("logstash", true, false, false, null);
+    verify(mockChannel).queueDeclarePassive("logstash");
     verify(mockChannel).basicPublish("", "logstash", null, json.getBytes());
+    verify(mockChannel).isOpen();
     verify(mockChannel).close();
   }
 
@@ -195,9 +202,32 @@ public class RabbitMqDaoTest {
     // Verify results
     verify(mockPool).newConnection();
     verify(mockConnection).createChannel();
+    verify(mockConnection).isOpen();
     verify(mockConnection).close();
+    verify(mockChannel).queueDeclarePassive("logstash");
+    verify(mockChannel).basicPublish("", "logstash", null, json.getBytes());
+    verify(mockChannel).isOpen();
+    verify(mockChannel).close();
+  }
+
+  @Test
+  public void pushSuccesBuildQueue() throws Exception {
+    String json = "{ 'foo': 'bar' }";
+
+    when(mockChannel.queueDeclarePassive("logstash")).thenThrow(new IOException("Queue does not exist"));
+
+    // Unit under test
+    dao.push(json);
+
+    // Verify results
+    verify(mockPool).newConnection();
+    verify(mockConnection, times(2)).createChannel();
+    verify(mockConnection).isOpen();
+    verify(mockConnection).close();
+    verify(mockChannel).queueDeclarePassive("logstash");
     verify(mockChannel).queueDeclare("logstash", true, false, false, null);
     verify(mockChannel).basicPublish("", "logstash", null, json.getBytes());
-    verify(mockChannel).close();
+    verify(mockChannel, times(2)).isOpen();
+    verify(mockChannel, times(2)).close();
   }
 }
