@@ -24,6 +24,7 @@
 
 package jenkins.plugins.logstash.persistence;
 
+import java.util.Calendar;
 import java.util.List;
 
 import org.apache.commons.lang.StringUtils;
@@ -62,7 +63,8 @@ abstract class AbstractLogstashIndexerDao implements LogstashIndexerDao {
     payload.put("message", logLines);
     payload.put("source", "jenkins");
     payload.put("source_host", jenkinsUrl);
-    payload.put("@timestamp", buildData.getTimestamp());
+    payload.put("@buildTimestamp", buildData.getTimestamp());
+    payload.put("@timestamp", BuildData.DATE_FORMATTER.format(Calendar.getInstance().getTime()));
     payload.put("@version", 1);
 
     return payload;
