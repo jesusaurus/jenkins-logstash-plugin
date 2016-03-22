@@ -60,7 +60,6 @@ public class LogstashBuildWrapperTest {
   @After
   public void after() throws Exception {
     verifyNoMoreInteractions(mockWriter);
-    verifyNoMoreInteractions(mockBuild);
     verifyNoMoreInteractions(mockBuildData);
     buffer.close();
   }
