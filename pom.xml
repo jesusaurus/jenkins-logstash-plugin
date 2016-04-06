@@ -26,7 +26,7 @@
     <connection>scm:git:git://github.com/jenkinsci/logstash-plugin.git</connection>
     <developerConnection>scm:git:git@github.com:jenkinsci/logstash-plugin.git</developerConnection>
     <url>http://github.com/jenkinsci/logstash-plugin</url>
-    <tag>logstash-1.2.0</tag>
+    <tag>HEAD</tag>
   </scm>
 
   <distributionManagement>
@@ -44,7 +44,7 @@
 
   <artifactId>logstash</artifactId>
   <packaging>hpi</packaging>
-  <version>1.2.0</version>
+  <version>1.2.1-SNAPSHOT</version>
   <name>Logstash</name>
   <description>A Logstash agent to send Jenkins logs to a Logstash indexer.</description>
   <url>http://wiki.jenkins-ci.org/display/JENKINS/Logstash+Plugin</url>
