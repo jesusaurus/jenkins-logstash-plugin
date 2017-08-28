@@ -45,7 +45,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import static java.util.logging.Level.WARNING;
@@ -138,7 +137,7 @@ public class BuildData {
   BuildData() {}
 
   // Freestyle project build
-  public BuildData(AbstractBuild<?, ?> build, Date currentTime) {
+  public BuildData(AbstractBuild<?, ?> build, Date currentTime, TaskListener listener) {
     initData(build, currentTime);
 
     Node node = build.getBuiltOn();
@@ -172,7 +171,13 @@ public class BuildData {
           buildEnvVariables.clear();
         }
       }
-    } 
+    }
+    try {
+      buildVariables.putAll(build.getEnvironment(listener));
+    } catch (Exception e) {
+      // no base build env vars to merge
+      LOGGER.log(WARNING,"Unable update logstash buildVariables with EnvVars from " + build.getDisplayName(),e);
+    }
     for (String key : sensitiveBuildVariables) {
       buildVariables.remove(key);
     }
