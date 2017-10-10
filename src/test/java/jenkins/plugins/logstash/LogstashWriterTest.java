@@ -9,13 +9,19 @@ import hudson.tasks.test.AbstractTestResultAction;
 import jenkins.plugins.logstash.persistence.BuildData;
 import jenkins.plugins.logstash.persistence.LogstashIndexerDao;
 import jenkins.plugins.logstash.persistence.LogstashIndexerDao.IndexerType;
+import org.jenkinsci.plugins.scriptsecurity.sandbox.groovy.SecureGroovyScript;
+import org.jvnet.hudson.test.JenkinsRule;
 import net.sf.json.JSONObject;
+import net.sf.json.JSONArray;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.Rule;
 import org.junit.runner.RunWith;
 import org.mockito.*;
+import org.mockito.invocation.InvocationOnMock;
 import org.mockito.runners.MockitoJUnitRunner;
+import org.mockito.stubbing.Answer;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -31,13 +37,16 @@ import static org.mockito.Mockito.*;
 
 @RunWith(MockitoJUnitRunner.class)
 public class LogstashWriterTest {
+  @Rule public JenkinsRule j = new JenkinsRule();
+
   // Extension of the unit under test that avoids making calls to getInstance() to get the DAO singleton
   static LogstashWriter createLogstashWriter(final AbstractBuild<?, ?> testBuild,
                                              OutputStream error,
                                              final String url,
                                              final LogstashIndexerDao indexer,
-                                             final BuildData data) {
-    return new LogstashWriter(testBuild, error, null) {
+                                             final BuildData data,
+                                             final LogstashPayloadProcessor processor) {
+    return new LogstashWriter(testBuild, error, null, processor) {
       @Override
       LogstashIndexerDao getDao() throws InstantiationException {
         if (indexer == null) {
@@ -64,6 +73,14 @@ public class LogstashWriterTest {
         return url;
       }
     };
+  }
+
+  static LogstashWriter createLogstashWriter(final AbstractBuild<?, ?> testBuild,
+                                             OutputStream error,
+                                             final String url,
+                                             final LogstashIndexerDao indexer,
+                                             final BuildData data) {
+    return createLogstashWriter(testBuild, error, url, indexer, data, null);
   }
 
   ByteArrayOutputStream errorBuffer;
@@ -107,7 +124,15 @@ public class LogstashWriterTest {
     when(mockProject.getFullName()).thenReturn("parent/LogstashWriterTest");
 
     when(mockDao.buildPayload(Matchers.any(BuildData.class), Matchers.anyString(), Matchers.anyListOf(String.class)))
-      .thenReturn(JSONObject.fromObject("{\"data\":{},\"message\":[\"test\"],\"source\":\"jenkins\",\"source_host\":\"http://my-jenkins-url\",\"@version\":1}"));
+      .thenAnswer(new Answer() {
+        @Override
+        public JSONObject answer(InvocationOnMock invocation) {
+          Object[] args = invocation.getArguments();
+          JSONObject json = JSONObject.fromObject("{\"data\":{},\"message\": null,\"source\":\"jenkins\",\"source_host\":\"http://my-jenkins-url\",\"@version\":1}");
+          json.element("message", args[2]);
+          return json;
+        }
+      });
 
     Mockito.doNothing().when(mockDao).push(Matchers.anyString());
     when(mockDao.getIndexerType()).thenReturn(IndexerType.REDIS);
@@ -235,10 +260,54 @@ public class LogstashWriterTest {
     // Verify results
     // No error output
     assertEquals("Results don't match", "", errorBuffer.toString());
-    verify(mockBuild).getLog(3);
+    String lines = JSONArray.fromObject(mockBuild.getLog(3)).toString();
+    verify(mockBuild, times(2)).getLog(3);
 
     verify(mockDao).buildPayload(Matchers.eq(mockBuildData), Matchers.eq("http://my-jenkins-url"), Matchers.anyListOf(String.class));
-    verify(mockDao).push("{\"data\":{},\"message\":[\"test\"],\"source\":\"jenkins\",\"source_host\":\"http://my-jenkins-url\",\"@version\":1}");
+    verify(mockDao).push("{\"data\":{},\"message\":" + lines + ",\"source\":\"jenkins\",\"source_host\":\"http://my-jenkins-url\",\"@version\":1}");
+  }
+
+  @Test
+  public void writeProcessedSuccess() throws Exception {
+    String goodMsg = "test message";
+    String ignoredMsg = "ignored input";
+    String scriptString =
+      "if (payload) {\n" +
+      "  if (payload['message'][0] =~ /" + ignoredMsg + "/) {\n" +
+      "    payload = null\n" +
+      "  } else {\n" +
+      "    console.println('l');\n" +
+      "  }\n" +
+      "  lastPayload = payload\n" +
+      "} else {\n" +
+      "  console.println('test build console message')\n" +
+      "  payload = lastPayload\n" +
+      "}";
+
+    SecureGroovyScript script = new SecureGroovyScript(scriptString, true, null);
+    LogstashScriptProcessor processor = new LogstashScriptProcessor(script, errorBuffer);
+    LogstashWriter writer = createLogstashWriter(mockBuild, errorBuffer, "http://my-jenkins-url", mockDao, mockBuildData, processor);
+    errorBuffer.reset();
+
+    // Unit under test
+    writer.write(goodMsg);
+    writer.write(ignoredMsg);
+    writer.write(goodMsg);
+    writer.close();
+
+    // Verify results
+    // buffer contains 2 lines logged by the script, then standard tear down message and finally test message at close
+    assertEquals("Results don't match", "l\nl\nTearing down Script Log Processor..\ntest build console message\n", errorBuffer.toString());
+
+    InOrder inOrder = Mockito.inOrder(mockDao);
+
+    // first message is generated and pushed to DAO
+    inOrder.verify(mockDao).buildPayload(Matchers.eq(mockBuildData), Matchers.eq("http://my-jenkins-url"), Matchers.anyListOf(String.class));
+    inOrder.verify(mockDao).push("{\"data\":{},\"message\":[\"" + goodMsg + "\"],\"source\":\"jenkins\",\"source_host\":\"http://my-jenkins-url\",\"@version\":1}");
+    // now message only generated but filtered out by script thus not pushed to DAO
+    inOrder.verify(mockDao, times(2)).buildPayload(Matchers.eq(mockBuildData), Matchers.eq("http://my-jenkins-url"), Matchers.anyListOf(String.class));
+    // the message at close time is generated by the script so no call to DAO for that
+    inOrder.verify(mockDao, times(2)).push("{\"data\":{},\"message\":[\"" + goodMsg + "\"],\"source\":\"jenkins\",\"source_host\":\"http://my-jenkins-url\",\"@version\":1}");
   }
 
   @Test
@@ -302,9 +371,10 @@ public class LogstashWriterTest {
     List<String> expectedErrorLines =  Arrays.asList(
       "[logstash-plugin]: Unable to serialize log data.",
       "java.io.IOException: Unable to read log file");
-    verify(mockDao).push("{\"data\":{},\"message\":[\"test\"],\"source\":\"jenkins\",\"source_host\":\"http://my-jenkins-url\",\"@version\":1}");
     verify(mockDao).buildPayload(eq(mockBuildData), eq("http://my-jenkins-url"), logLinesCaptor.capture());
     List<String> actualLogLines = logLinesCaptor.getValue();
+    String linesJSON = JSONArray.fromObject(actualLogLines).toString();
+    verify(mockDao).push("{\"data\":{},\"message\":" + linesJSON + ",\"source\":\"jenkins\",\"source_host\":\"http://my-jenkins-url\",\"@version\":1}");
 
     assertThat("The exception was not sent to Logstash", actualLogLines.get(0), containsString(expectedErrorLines.get(0)));
     assertThat("The exception was not sent to Logstash", actualLogLines.get(1), containsString(expectedErrorLines.get(1)));

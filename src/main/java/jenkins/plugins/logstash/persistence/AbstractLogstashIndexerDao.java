@@ -31,6 +31,8 @@ import org.apache.commons.lang.StringUtils;
 
 import net.sf.json.JSONObject;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 /**
  * Abstract data access object for Logstash indexers.
  *
@@ -57,6 +59,9 @@ abstract class AbstractLogstashIndexerDao implements LogstashIndexerDao {
   }
 
   @Override
+  @SuppressFBWarnings(
+    value="STCAL_INVOKE_ON_STATIC_DATE_FORMAT_INSTANCE",
+    justification="TODO: not sure how to fix this")
   public JSONObject buildPayload(BuildData buildData, String jenkinsUrl, List<String> logLines) {
     JSONObject payload = new JSONObject();
     payload.put("data", buildData.toJson());

@@ -57,6 +57,8 @@ import org.apache.commons.lang.StringUtils;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 /**
  * POJO for mapping build info to JSON.
  *
@@ -65,6 +67,9 @@ import com.google.gson.GsonBuilder;
  */
 public class BuildData {
   // ISO 8601 date format
+  @SuppressFBWarnings(
+    value="STCAL_STATIC_SIMPLE_DATE_FORMAT_INSTANCE",
+    justification="TODO: not sure how to fix this")
   public transient static final DateFormat DATE_FORMATTER = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ");
   private final static Logger LOGGER = Logger.getLogger(MethodHandles.lookup().lookupClass().getCanonicalName());
   public static class TestData {
@@ -86,6 +91,9 @@ public class BuildData {
       this(null);
     }
 
+    @SuppressFBWarnings(
+      value="URF_UNREAD_FIELD",
+      justification="TODO: not sure how to fix this")
     public TestData(Action action) {
       AbstractTestResultAction<?> testResultAction = null;
       if (action instanceof AbstractTestResultAction) {
@@ -207,6 +215,9 @@ public class BuildData {
     }
   }
 
+  @SuppressFBWarnings(
+    value={"NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE","STCAL_INVOKE_ON_STATIC_DATE_FORMAT_INSTANCE"},
+    justification="TODO: not sure how to fix this")
   private void initData(Run<?, ?> build, Date currentTime) {
     result = build.getResult() == null ? null : build.getResult().toString();
     id = build.getId();
@@ -338,6 +349,9 @@ public class BuildData {
     return timestamp;
   }
 
+  @SuppressFBWarnings(
+    value="STCAL_INVOKE_ON_STATIC_DATE_FORMAT_INSTANCE",
+    justification="TODO: not sure how to fix this")
   public void setTimestamp(Calendar timestamp) {
     this.timestamp = DATE_FORMATTER.format(timestamp.getTime());
   }

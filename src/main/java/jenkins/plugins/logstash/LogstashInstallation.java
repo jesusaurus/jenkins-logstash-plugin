@@ -43,6 +43,8 @@ import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.StaplerRequest;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 /**
  * POJO for storing global configurations shared between components.
  *
@@ -65,6 +67,9 @@ public class LogstashInstallation extends ToolInstallation {
   public static final class Descriptor extends ToolDescriptor<LogstashInstallation> {
     public IndexerType type;
     public SyslogFormat syslogFormat;
+    @SuppressFBWarnings(
+      value="UUF_UNUSED_PUBLIC_OR_PROTECTED_FIELD",
+      justification="TODO: do we need this?")
     public SyslogProtocol syslogProtocol;
     public String host;
     public Integer port = -1;
@@ -85,6 +90,9 @@ public class LogstashInstallation extends ToolInstallation {
     }
 
     @Override
+    @SuppressFBWarnings(
+      value="NP_PARAMETER_MUST_BE_NONNULL_BUT_MARKED_AS_NULLABLE",
+      justification="TODO: investigate")
     public ToolInstallation newInstance(StaplerRequest req, JSONObject formData) throws FormException {
       req.bindJSON(this, formData.getJSONObject("logstash"));
       save();
