@@ -6,29 +6,13 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
-import hudson.EnvVars;
-import hudson.model.Environment;
-import hudson.model.EnvironmentList;
-import hudson.model.Result;
-import hudson.model.TaskListener;
-import hudson.model.AbstractBuild;
-import hudson.model.Node;
-import hudson.model.Project;
-import hudson.tasks.test.AbstractTestResultAction;
-import hudson.tasks.test.TestResult;
-
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 import java.util.GregorianCalendar;
 import java.util.HashMap;
-import java.util.Map;
 import java.util.HashSet;
-import java.util.Set;
-
-import jenkins.plugins.logstash.persistence.BuildData.TestData;
-import net.sf.json.JSONObject;
-import net.sf.json.test.JSONAssert;
+import java.util.Map;
 
 import org.junit.After;
 import org.junit.Assert;
@@ -42,39 +26,60 @@ import org.mockito.invocation.InvocationOnMock;
 import org.mockito.runners.MockitoJUnitRunner;
 import org.mockito.stubbing.Answer;
 
+import hudson.EnvVars;
+import hudson.model.AbstractBuild;
+import hudson.model.Environment;
+import hudson.model.EnvironmentList;
+import hudson.model.Node;
+import hudson.model.Project;
+import hudson.model.Result;
+import hudson.model.TaskListener;
+import hudson.tasks.test.AbstractTestResultAction;
+import hudson.tasks.test.TestResult;
+import net.sf.json.JSONObject;
+import net.sf.json.test.JSONAssert;
+
 @SuppressWarnings("rawtypes")
 @RunWith(MockitoJUnitRunner.class)
 public class BuildDataTest {
 
-  static final String FULL_STRING = "{\"id\":\"TEST_JOB_123\",\"result\":\"SUCCESS\",\"projectName\":\"PROJECT_NAME\",\"displayName\":\"DISPLAY NAME\",\"fullDisplayName\":\"FULL DISPLAY NAME\",\"description\":\"DESCRIPTION\",\"url\":\"http://localhost:8080/jenkins/jobs/PROJECT_NAME/123\",\"buildHost\":\"http://localhost:8080/jenkins\",\"buildLabel\":\"master\",\"buildNum\":123,\"buildDuration\":100,\"rootProjectName\":\"ROOT PROJECT NAME\",\"rootProjectDisplayName\":\"ROOT PROJECT DISPLAY NAME\",\"rootBuildNum\":456,\"buildVariables\":{},\"sensitiveBuildVariables\":[],\"testResults\":{\"totalCount\":0,\"skipCount\":0,\"failCount\":0, \"passCount\":0,\"failedTests\":[], \"failedTestsWithErrorDetail\":[]}}";
+  static final String FULL_STRING = "{\"id\":\"TEST_JOB_123\",\"result\":\"SUCCESS\",\"fullProjectName\":\"parent/BuildDataTest\","
+      + "\"projectName\":\"BuildDataTest\",\"displayName\":\"BuildData Test\",\"fullDisplayName\":\"BuildData Test #123456\","
+      + "\"description\":\"Mock project for testing BuildData\",\"url\":\"http://localhost:8080/jenkins/jobs/PROJECT_NAME/123\","
+      + "\"buildHost\":\"master\",\"buildLabel\":\"master\",\"buildNum\":123456,\"buildDuration\":60,"
+      + "\"rootProjectName\":\"RootBuildDataTest\",\"rootFullProjectName\":\"parent/RootBuildDataTest\","
+      + "\"rootProjectDisplayName\":\"Root BuildData Test\",\"rootBuildNum\":456,\"buildVariables\":{},"
+      + "\"sensitiveBuildVariables\":[],\"testResults\":{\"totalCount\":0,\"skipCount\":0,\"failCount\":0, \"passCount\":0,"
+      + "\"failedTests\":[], \"failedTestsWithErrorDetail\":[]}}";
 
   @Mock AbstractBuild mockBuild;
+  @Mock AbstractBuild mockRootBuild;
   @Mock AbstractTestResultAction mockTestResultAction;
   @Mock Project mockProject;
+  @Mock Project mockRootProject;
   @Mock Node mockNode;
   @Mock Environment mockEnvironment;
   @Mock Date mockDate;
-  @Mock GregorianCalendar mockCalendar;
   @Mock TaskListener mockListener;
 
 
   @Before
   public void before() throws Exception {
     when(mockBuild.getResult()).thenReturn(Result.SUCCESS);
-    when(mockBuild.getDisplayName()).thenReturn("BuildDataTest");
-    when(mockBuild.getFullDisplayName()).thenReturn("BuildDataTest #123456");
+    when(mockBuild.getDisplayName()).thenReturn("BuildData Test");
+    when(mockBuild.getFullDisplayName()).thenReturn("BuildData Test #123456");
     when(mockBuild.getDescription()).thenReturn("Mock project for testing BuildData");
     when(mockBuild.getProject()).thenReturn(mockProject);
+    when(mockBuild.getParent()).thenReturn(mockProject);
     when(mockBuild.getNumber()).thenReturn(123456);
-    when(mockBuild.getDuration()).thenReturn(0L);
-    when(mockBuild.getTimestamp()).thenReturn(mockCalendar);
+    when(mockBuild.getTimestamp()).thenReturn(new GregorianCalendar());
     when(mockBuild.getRootBuild()).thenReturn(mockBuild);
     when(mockBuild.getBuildVariables()).thenReturn(Collections.emptyMap());
     when(mockBuild.getSensitiveBuildVariables()).thenReturn(Collections.emptySet());
     when(mockBuild.getEnvironments()).thenReturn(null);
-    when(mockBuild.getLog(3)).thenReturn(Arrays.asList("line 1", "line 2", "line 3"));
     when(mockBuild.getAction(AbstractTestResultAction.class)).thenReturn(mockTestResultAction);
     when(mockBuild.getEnvironment(mockListener)).thenReturn(new EnvVars());
+    when(mockBuild.getRootBuild()).thenReturn(mockRootBuild);
 
     when(mockTestResultAction.getTotalCount()).thenReturn(0);
     when(mockTestResultAction.getSkipCount()).thenReturn(0);
@@ -82,6 +87,14 @@ public class BuildDataTest {
     when(mockTestResultAction.getFailedTests()).thenReturn(Collections.emptyList());
 
     when(mockProject.getName()).thenReturn("BuildDataTest");
+    when(mockProject.getFullName()).thenReturn("parent/BuildDataTest");
+
+    when(mockRootBuild.getProject()).thenReturn(mockRootProject);
+    when(mockRootBuild.getNumber()).thenReturn(456);
+    when(mockRootBuild.getDisplayName()).thenReturn("Root BuildData Test");
+
+    when(mockRootProject.getName()).thenReturn("RootBuildDataTest");
+    when(mockRootProject.getFullName()).thenReturn("parent/RootBuildDataTest");
 
     when(mockDate.getTime()).thenReturn(60L);
   }
@@ -93,6 +106,48 @@ public class BuildDataTest {
     verifyNoMoreInteractions(mockProject);
     verifyNoMoreInteractions(mockEnvironment);
     verifyNoMoreInteractions(mockDate);
+    verifyNoMoreInteractions(mockRootBuild);
+    verifyNoMoreInteractions(mockRootProject);
+  }
+
+  private void verifyMocks() throws Exception
+  {
+    verify(mockProject).getName();
+    verify(mockProject).getFullName();
+
+    verify(mockBuild).getId();
+    verify(mockBuild, times(2)).getResult();
+    verify(mockBuild, times(2)).getParent();
+    verify(mockBuild).getDisplayName();
+    verify(mockBuild).getFullDisplayName();
+    verify(mockBuild).getDescription();
+    verify(mockBuild).getStartTimeInMillis();
+    verify(mockBuild).getUrl();
+    verify(mockBuild).getAction(AbstractTestResultAction.class);
+    verify(mockBuild).getBuiltOn();
+    verify(mockBuild).getNumber();
+    verify(mockBuild).getTimestamp();
+    verify(mockBuild, times(4)).getRootBuild();
+    verify(mockBuild).getBuildVariables();
+    verify(mockBuild).getSensitiveBuildVariables();
+    verify(mockBuild).getEnvironments();
+    verify(mockBuild).getEnvironment(mockListener);
+
+    verify(mockRootProject).getName();
+    verify(mockRootProject).getFullName();
+
+    verify(mockRootBuild, times(2)).getProject();
+    verify(mockRootBuild).getDisplayName();
+    verify(mockRootBuild).getNumber();
+
+    verify(mockDate).getTime();
+  }
+
+  private void verifyTestResultActions() {
+    verify(mockTestResultAction).getTotalCount();
+    verify(mockTestResultAction).getSkipCount();
+    verify(mockTestResultAction).getFailCount();
+    verify(mockTestResultAction, times(1)).getFailedTests();
   }
 
   @Test
@@ -109,32 +164,9 @@ public class BuildDataTest {
     Assert.assertEquals("Incorrect buildHost", "master", buildData.getBuildHost());
     Assert.assertEquals("Incorrect buildLabel", "master", buildData.getBuildLabel());
 
-    verify(mockBuild).getId();
-    verify(mockBuild, times(2)).getResult();
-    verify(mockBuild, times(2)).getParent();
-    verify(mockBuild, times(2)).getDisplayName();
-    verify(mockBuild).getFullDisplayName();
-    verify(mockBuild).getDescription();
-    verify(mockBuild).getUrl();
-    verify(mockBuild).getAction(AbstractTestResultAction.class);
-    verify(mockBuild).getBuiltOn();
-    verify(mockBuild, times(2)).getNumber();
-    verify(mockBuild).getTimestamp();
-    verify(mockBuild, times(3)).getRootBuild();
-    verify(mockBuild).getBuildVariables();
-    verify(mockBuild).getSensitiveBuildVariables();
-    verify(mockBuild).getEnvironments();
-    verify(mockBuild).getEnvironment(mockListener);
-
-    verify(mockTestResultAction).getTotalCount();
-    verify(mockTestResultAction).getSkipCount();
-    verify(mockTestResultAction).getFailCount();
-    verify(mockTestResultAction, times(1)).getFailedTests();
-
-    verify(mockProject, times(2)).getName();
-
-    verify(mockDate).getTime();
-  }
+    verifyMocks();
+    verifyTestResultActions();
+   }
 
   @Test
   public void constructorSuccessBuiltOnMaster() throws Exception {
@@ -153,32 +185,8 @@ public class BuildDataTest {
     Assert.assertEquals("Incorrect buildHost", "Jenkins", buildData.getBuildHost());
     Assert.assertEquals("Incorrect buildLabel", "master", buildData.getBuildLabel());
 
-    verify(mockBuild).getId();
-    verify(mockBuild, times(2)).getResult();
-    verify(mockBuild, times(2)).getParent();
-    verify(mockBuild, times(2)).getDisplayName();
-    verify(mockBuild).getFullDisplayName();
-    verify(mockBuild).getDescription();
-    verify(mockBuild).getUrl();
-    verify(mockBuild).getAction(AbstractTestResultAction.class);
-    verify(mockBuild).getBuiltOn();
-    verify(mockBuild, times(2)).getNumber();
-    verify(mockBuild).getTimestamp();
-    verify(mockBuild, times(3)).getRootBuild();
-    verify(mockBuild).getBuildVariables();
-    verify(mockBuild).getSensitiveBuildVariables();
-    verify(mockBuild).getEnvironments();
-    verify(mockBuild).getEnvironment(mockListener);
-
-    verify(mockTestResultAction).getTotalCount();
-    verify(mockTestResultAction).getSkipCount();
-    verify(mockTestResultAction).getFailCount();
-    verify(mockTestResultAction, times(1)).getFailedTests();
-
-
-    verify(mockProject, times(2)).getName();
-
-    verify(mockDate).getTime();
+    verifyMocks();
+    verifyTestResultActions();
   }
 
   @Test
@@ -198,37 +206,13 @@ public class BuildDataTest {
     Assert.assertEquals("Incorrect buildHost", "Test Slave 01", buildData.getBuildHost());
     Assert.assertEquals("Incorrect buildLabel", "Test Slave", buildData.getBuildLabel());
 
-    verify(mockBuild).getId();
-    verify(mockBuild, times(2)).getResult();
-    verify(mockBuild, times(2)).getParent();
-    verify(mockBuild, times(2)).getDisplayName();
-    verify(mockBuild).getFullDisplayName();
-    verify(mockBuild).getDescription();
-    verify(mockBuild).getUrl();
-    verify(mockBuild).getAction(AbstractTestResultAction.class);
-    verify(mockBuild).getBuiltOn();
-    verify(mockBuild, times(2)).getNumber();
-    verify(mockBuild).getTimestamp();
-    verify(mockBuild, times(3)).getRootBuild();
-    verify(mockBuild).getBuildVariables();
-    verify(mockBuild).getSensitiveBuildVariables();
-    verify(mockBuild).getEnvironments();
-    verify(mockBuild).getEnvironment(mockListener);
-
-    verify(mockTestResultAction).getTotalCount();
-    verify(mockTestResultAction).getSkipCount();
-    verify(mockTestResultAction).getFailCount();
-    verify(mockTestResultAction, times(1)).getFailedTests();
-
-    verify(mockProject, times(2)).getName();
-
-    verify(mockDate).getTime();
+    verifyMocks();
+    verifyTestResultActions();
   }
 
   @Test
   public void constructorSuccessTestFailures() throws Exception {
     TestResult mockTestResult = Mockito.mock(hudson.tasks.test.TestResult.class);
-    when(mockTestResult.getSafeName()).thenReturn("Mock Test");
     when(mockTestResult.getFullName()).thenReturn("Mock Full Test");
     when(mockTestResult.getErrorDetails()).thenReturn("ErrorDetails Test");
 
@@ -247,32 +231,8 @@ public class BuildDataTest {
     Assert.assertEquals("Incorrect failed test error details", "ErrorDetails Test", buildData.testResults.failedTestsWithErrorDetail.get(0).errorDetails);
     Assert.assertEquals("Incorrect failed test fullName", "Mock Full Test", buildData.testResults.failedTestsWithErrorDetail.get(0).fullName);
 
-    // Verify the rest of the results
-    verify(mockBuild).getId();
-    verify(mockBuild, times(2)).getResult();
-    verify(mockBuild, times(2)).getParent();
-    verify(mockBuild, times(2)).getDisplayName();
-    verify(mockBuild).getFullDisplayName();
-    verify(mockBuild).getDescription();
-    verify(mockBuild).getUrl();
-    verify(mockBuild).getAction(AbstractTestResultAction.class);
-    verify(mockBuild).getBuiltOn();
-    verify(mockBuild, times(2)).getNumber();
-    verify(mockBuild).getTimestamp();
-    verify(mockBuild, times(3)).getRootBuild();
-    verify(mockBuild).getBuildVariables();
-    verify(mockBuild).getSensitiveBuildVariables();
-    verify(mockBuild).getEnvironments();
-    verify(mockBuild).getEnvironment(mockListener);
-
-    verify(mockTestResultAction).getTotalCount();
-    verify(mockTestResultAction).getSkipCount();
-    verify(mockTestResultAction).getFailCount();
-    verify(mockTestResultAction, times(1)).getFailedTests();
-
-    verify(mockProject, times(2)).getName();
-
-    verify(mockDate).getTime();
+    verifyMocks();
+    verifyTestResultActions();
   }
 
   @Test
@@ -284,27 +244,7 @@ public class BuildDataTest {
 
     Assert.assertEquals("Incorrect test results", null, buildData.testResults);
 
-    // Verify the rest of the results
-    verify(mockBuild).getId();
-    verify(mockBuild, times(2)).getResult();
-    verify(mockBuild, times(2)).getParent();
-    verify(mockBuild, times(2)).getDisplayName();
-    verify(mockBuild).getFullDisplayName();
-    verify(mockBuild).getDescription();
-    verify(mockBuild).getUrl();
-    verify(mockBuild).getAction(AbstractTestResultAction.class);
-    verify(mockBuild).getBuiltOn();
-    verify(mockBuild, times(2)).getNumber();
-    verify(mockBuild).getTimestamp();
-    verify(mockBuild, times(3)).getRootBuild();
-    verify(mockBuild).getBuildVariables();
-    verify(mockBuild).getSensitiveBuildVariables();
-    verify(mockBuild).getEnvironments();
-    verify(mockBuild).getEnvironment(mockListener);
-
-    verify(mockProject, times(2)).getName();
-
-    verify(mockDate).getTime();
+    verifyMocks();
   }
 
   @Test
@@ -345,33 +285,10 @@ public class BuildDataTest {
     Assert.assertEquals("Missing environment variable '" + buildVarKey + "'", buildVarVal, buildData.getBuildVariables().get(buildVarKey));
     Assert.assertNull("Found sensitive environment variable '" + sensitiveVarKey + "'", buildData.getBuildVariables().get(sensitiveVarKey));
 
-    verify(mockBuild).getId();
-    verify(mockBuild, times(2)).getResult();
-    verify(mockBuild, times(2)).getParent();
-    verify(mockBuild, times(2)).getDisplayName();
-    verify(mockBuild).getFullDisplayName();
-    verify(mockBuild).getDescription();
-    verify(mockBuild).getUrl();
-    verify(mockBuild).getAction(AbstractTestResultAction.class);
-    verify(mockBuild).getBuiltOn();
-    verify(mockBuild, times(2)).getNumber();
-    verify(mockBuild).getTimestamp();
-    verify(mockBuild, times(3)).getRootBuild();
-    verify(mockBuild).getBuildVariables();
-    verify(mockBuild).getSensitiveBuildVariables();
-    verify(mockBuild).getEnvironments();
-    verify(mockBuild).getEnvironment(mockListener);
-
     verify(mockEnvironment).buildEnvVars(Matchers.<Map<String, String>>any());
 
-    verify(mockTestResultAction).getTotalCount();
-    verify(mockTestResultAction).getSkipCount();
-    verify(mockTestResultAction).getFailCount();
-    verify(mockTestResultAction, times(1)).getFailedTests();
-
-    verify(mockProject, times(2)).getName();
-
-    verify(mockDate).getTime();
+    verifyMocks();
+    verifyTestResultActions();
   }
 
   @Test // JENKINS-41324
@@ -406,70 +323,55 @@ public class BuildDataTest {
     Assert.assertEquals("Wrong number of environment variables", 1, buildData.getBuildVariables().size());
     Assert.assertEquals("Missing environment variable '" + varKey + "'", buildVarVal, buildData.getBuildVariables().get(varKey));
 
-    verify(mockBuild).getId();
-    verify(mockBuild, times(2)).getResult();
-    verify(mockBuild, times(2)).getParent();
-    verify(mockBuild, times(2)).getDisplayName();
-    verify(mockBuild).getFullDisplayName();
-    verify(mockBuild).getDescription();
-    verify(mockBuild).getUrl();
-    verify(mockBuild).getAction(AbstractTestResultAction.class);
-    verify(mockBuild).getBuiltOn();
-    verify(mockBuild, times(2)).getNumber();
-    verify(mockBuild).getTimestamp();
-    verify(mockBuild, times(3)).getRootBuild();
-    verify(mockBuild).getBuildVariables();
-    verify(mockBuild).getSensitiveBuildVariables();
-    verify(mockBuild).getEnvironments();
-    verify(mockBuild).getEnvironment(mockListener);
-
     verify(mockEnvironment).buildEnvVars(Matchers.<Map<String, String>>any());
 
-    verify(mockTestResultAction).getTotalCount();
-    verify(mockTestResultAction).getSkipCount();
-    verify(mockTestResultAction).getFailCount();
-    verify(mockTestResultAction, times(1)).getFailedTests();
-
-    verify(mockProject, times(2)).getName();
-
-    verify(mockDate).getTime();
+    verifyMocks();
+    verifyTestResultActions();
   }
 
   @Test
-  public void toJsonSuccess() throws Exception {
-    BuildData buildData = makeFullBuildData();
+  public void toJsonSuccess() throws Exception
+  {
+      when(mockBuild.getId()).thenReturn("TEST_JOB_123");
+      when(mockBuild.getUrl()).thenReturn("http://localhost:8080/jenkins/jobs/PROJECT_NAME/123");
 
-    // Unit under test
-    JSONObject result = buildData.toJson();
+      BuildData buildData = new BuildData(mockBuild, mockDate, mockListener);
 
-    // Verify results
-    JSONAssert.assertEquals("Results don't match", JSONObject.fromObject(FULL_STRING), result);
+      // Unit under test
+      JSONObject result = buildData.toJson();
+
+      // Verify results
+      JSONAssert.assertEquals("Results don't match", JSONObject.fromObject(FULL_STRING), result);
+
+      verifyMocks();
+      verifyTestResultActions();
   }
 
-  BuildData makeFullBuildData() {
-    Map<String, String> buildVariables = Collections.emptyMap();
-    Set<String> sensitiveBuildVariables = Collections.emptySet();
-    BuildData buildData = new BuildData();
+  @Test
+  public void fullName() throws Exception
+  {
+      when(mockBuild.getId()).thenReturn("TEST_JOB_123");
+      when(mockBuild.getUrl()).thenReturn("http://localhost:8080/jenkins/jobs/PROJECT_NAME/123");
 
-    buildData.setBuildDuration(100);
-    buildData.setBuildHost("http://localhost:8080/jenkins");
-    buildData.setBuildLabel("master");
-    buildData.setBuildNum(123);
-    buildData.setBuildVariables(buildVariables);
-    buildData.setSensitiveBuildVariables(sensitiveBuildVariables);
-    buildData.setDescription("DESCRIPTION");
-    buildData.setDisplayName("DISPLAY NAME");
-    buildData.setFullDisplayName("FULL DISPLAY NAME");
-    buildData.setId("TEST_JOB_123");
-    buildData.setProjectName("PROJECT_NAME");
-    buildData.setResult(Result.SUCCESS);
-    buildData.setRootBuildNum(456);
-    buildData.setRootProjectDisplayName("ROOT PROJECT DISPLAY NAME");
-    buildData.setRootProjectName("ROOT PROJECT NAME");
-    buildData.timestamp = "2000-02-01T00:00:00-0800";
-    buildData.setUrl("http://localhost:8080/jenkins/jobs/PROJECT_NAME/123");
-    buildData.setTestResults(new TestData());
+      BuildData buildData = new BuildData(mockBuild, mockDate, mockListener);
 
-    return buildData;
+      Assert.assertEquals(buildData.getFullProjectName(), "parent/BuildDataTest");
+
+      verifyMocks();
+      verifyTestResultActions();
+  }
+
+  @Test
+  public void rootProjectFullName() throws Exception
+  {
+      when(mockBuild.getId()).thenReturn("TEST_JOB_123");
+      when(mockBuild.getUrl()).thenReturn("http://localhost:8080/jenkins/jobs/PROJECT_NAME/123");
+
+      BuildData buildData = new BuildData(mockBuild, mockDate, mockListener);
+
+      Assert.assertEquals(buildData.getRootFullProjectName(), "parent/RootBuildDataTest");
+
+      verifyMocks();
+      verifyTestResultActions();
   }
 }

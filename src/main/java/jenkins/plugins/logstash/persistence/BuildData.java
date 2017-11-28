@@ -48,10 +48,8 @@ import java.util.Set;
 import java.util.logging.Logger;
 
 import static java.util.logging.Level.WARNING;
-
 import java.io.IOException;
 import java.lang.invoke.MethodHandles;
-
 import net.sf.json.JSONObject;
 
 import org.apache.commons.lang.StringUtils;
@@ -105,11 +103,11 @@ public class BuildData {
       skipCount = testResultAction.getSkipCount();
       failCount = testResultAction.getFailCount();
       passCount = totalCount - skipCount - failCount;
- 
+
       failedTests = new ArrayList<String>();
       failedTestsWithErrorDetail = new ArrayList<FailedTest>();
       for (TestResult result : testResultAction.getFailedTests()) {
-    	  failedTests.add(result.getFullName());  
+          failedTests.add(result.getFullName());
           failedTestsWithErrorDetail.add(new FailedTest(result.getFullName(),result.getErrorDetails()));
       }
     }
@@ -118,6 +116,7 @@ public class BuildData {
   protected String id;
   protected String result;
   protected String projectName;
+  protected String fullProjectName;
   protected String displayName;
   protected String fullDisplayName;
   protected String description;
@@ -128,13 +127,12 @@ public class BuildData {
   protected long buildDuration;
   protected transient String timestamp; // This belongs in the root object
   protected String rootProjectName;
+  protected String rootFullProjectName;
   protected String rootProjectDisplayName;
   protected int rootBuildNum;
   protected Map<String, String> buildVariables;
   protected Set<String> sensitiveBuildVariables;
   protected TestData testResults = null;
-
-  BuildData() {}
 
   // Freestyle project build
   public BuildData(AbstractBuild<?, ?> build, Date currentTime, TaskListener listener) {
@@ -151,6 +149,7 @@ public class BuildData {
 
     // build.getDuration() is always 0 in Notifiers
     rootProjectName = build.getRootBuild().getProject().getName();
+    rootFullProjectName = build.getRootBuild().getProject().getFullName();
     rootProjectDisplayName = build.getRootBuild().getDisplayName();
     rootBuildNum = build.getRootBuild().getNumber();
     buildVariables = build.getBuildVariables();
@@ -195,6 +194,7 @@ public class BuildData {
     }
 
     rootProjectName = projectName;
+    rootFullProjectName = fullProjectName;
     rootProjectDisplayName = displayName;
     rootBuildNum = buildNum;
 
@@ -211,6 +211,7 @@ public class BuildData {
     result = build.getResult() == null ? null : build.getResult().toString();
     id = build.getId();
     projectName = build.getParent().getName();
+    fullProjectName = build.getParent().getFullName();
     displayName = build.getDisplayName();
     fullDisplayName = build.getFullDisplayName();
     description = build.getDescription();
@@ -259,6 +260,14 @@ public class BuildData {
 
   public void setProjectName(String projectName) {
     this.projectName = projectName;
+  }
+
+  public String getFullProjectName() {
+    return fullProjectName;
+  }
+
+  public void setFullProjectName(String fullProjectName) {
+    this.fullProjectName = fullProjectName;
   }
 
   public String getDisplayName() {
@@ -339,6 +348,14 @@ public class BuildData {
 
   public void setRootProjectName(String rootProjectName) {
     this.rootProjectName = rootProjectName;
+  }
+
+  public String getRootFullProjectName() {
+    return rootFullProjectName;
+  }
+
+  public void setRootFullProjectName(String rootFullProjectName) {
+    this.rootFullProjectName = rootFullProjectName;
   }
 
   public String getRootProjectDisplayName() {
