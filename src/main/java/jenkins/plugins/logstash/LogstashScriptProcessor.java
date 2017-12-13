@@ -68,10 +68,6 @@ public class LogstashScriptProcessor implements LogstashPayloadProcessor{
   @Nonnull
   private final ClassLoader classLoader;
 
-  /** Script prepared for execution */
-  @Nonnull
-  private final SecureGroovyScript.PreparedScript preparedScript;
-
   public LogstashScriptProcessor(SecureGroovyScript script, OutputStream consoleOut) {
     this.script = script;
     this.consoleOut = consoleOut;
@@ -83,11 +79,6 @@ public class LogstashScriptProcessor implements LogstashPayloadProcessor{
     // not sure what the diff is compared to getClass().getClassLoader();
     final Jenkins jenkins = Jenkins.getInstance();
     classLoader = jenkins.getPluginManager().uberClassLoader;
-    try {
-      preparedScript = script.prepare(classLoader, binding);
-    } catch (Exception e) {
-      throw new RuntimeException("Error preparing log processor groovy script.", e);
-    }
   }
 
   /**
@@ -110,22 +101,14 @@ public class LogstashScriptProcessor implements LogstashPayloadProcessor{
   @Override
   public JSONObject process(JSONObject payload) throws Exception {
     binding.setVariable("payload", payload);
-    preparedScript.run();
-    Object processedPayload = binding.getVariable("payload");
-    if (processedPayload != null && !(processedPayload instanceof JSONObject)) {
-      throw new ClassCastException("script returned " + processedPayload.getClass().getName() + " instead of JSONObject");
-    }
-    return (JSONObject) processedPayload;
+    script.evaluate(classLoader, binding);
+    return (JSONObject) binding.getVariable("payload");
   }
 
   @Override
   public JSONObject finish() throws Exception {
-    try {
-      buildLogPrintln("Tearing down Script Log Processor..");
-      return process(null);
-    } finally {
-      preparedScript.cleanUp();
-    }
+    buildLogPrintln("Tearing down Script Log Processor..");
+    return process(null);
   }
 
   /**

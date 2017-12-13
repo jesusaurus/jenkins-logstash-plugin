@@ -283,6 +283,7 @@ public class LogstashWriterTest {
       "}";
 
     SecureGroovyScript script = new SecureGroovyScript(scriptString, true, null);
+    script.configuringWithNonKeyItem();
     LogstashScriptProcessor processor = new LogstashScriptProcessor(script, errorBuffer);
     LogstashWriter writer = createLogstashWriter(mockBuild, errorBuffer, "http://my-jenkins-url", mockDao, mockBuildData, processor);
     errorBuffer.reset();
