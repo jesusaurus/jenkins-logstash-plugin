@@ -51,8 +51,10 @@ import static java.util.logging.Level.WARNING;
 import java.io.IOException;
 import java.lang.invoke.MethodHandles;
 import net.sf.json.JSONObject;
+import javax.annotation.CheckForNull;
 
 import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang.time.FastDateFormat;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -66,11 +68,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  * @since 1.0.0
  */
 public class BuildData {
-  // ISO 8601 date format
-  @SuppressFBWarnings(
-    value="STCAL_STATIC_SIMPLE_DATE_FORMAT_INSTANCE",
-    justification="TODO: not sure how to fix this")
-  public transient static final DateFormat DATE_FORMATTER = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ");
+  private transient static final FastDateFormat DATE_FORMATTER = FastDateFormat.getInstance("yyyy-MM-dd'T'HH:mm:ssZ");
   private final static Logger LOGGER = Logger.getLogger(MethodHandles.lookup().lookupClass().getCanonicalName());
   public static class TestData {
     int totalCount, skipCount, failCount, passCount;
@@ -121,8 +119,8 @@ public class BuildData {
     }
   }
 
+  @CheckForNull protected String result;
   protected String id;
-  protected String result;
   protected String projectName;
   protected String fullProjectName;
   protected String displayName;
@@ -215,11 +213,14 @@ public class BuildData {
     }
   }
 
-  @SuppressFBWarnings(
-    value={"NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE","STCAL_INVOKE_ON_STATIC_DATE_FORMAT_INSTANCE"},
-    justification="TODO: not sure how to fix this")
+  // ISO 8601 date format
+  public static String formatDateIso(Date date) {
+    return DATE_FORMATTER.format(date);
+  }
+
   private void initData(Run<?, ?> build, Date currentTime) {
-    result = build.getResult() == null ? null : build.getResult().toString();
+    Result buildResult = build.getResult();
+    result = buildResult == null ? null : buildResult.toString();
     id = build.getId();
     projectName = build.getParent().getName();
     fullProjectName = build.getParent().getFullName();
@@ -235,7 +236,7 @@ public class BuildData {
     }
 
     buildDuration = currentTime.getTime() - build.getStartTimeInMillis();
-    timestamp = DATE_FORMATTER.format(build.getTimestamp().getTime());
+    timestamp = formatDateIso(build.getTime());
   }
 
   @Override
@@ -349,11 +350,8 @@ public class BuildData {
     return timestamp;
   }
 
-  @SuppressFBWarnings(
-    value="STCAL_INVOKE_ON_STATIC_DATE_FORMAT_INSTANCE",
-    justification="TODO: not sure how to fix this")
   public void setTimestamp(Calendar timestamp) {
-    this.timestamp = DATE_FORMATTER.format(timestamp.getTime());
+    this.timestamp = formatDateIso(timestamp.getTime());
   }
 
   public String getRootProjectName() {

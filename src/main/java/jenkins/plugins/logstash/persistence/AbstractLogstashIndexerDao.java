@@ -24,7 +24,7 @@
 
 package jenkins.plugins.logstash.persistence;
 
-import java.util.Calendar;
+import java.util.Date;
 import java.util.List;
 
 import org.apache.commons.lang.StringUtils;
@@ -59,9 +59,6 @@ abstract class AbstractLogstashIndexerDao implements LogstashIndexerDao {
   }
 
   @Override
-  @SuppressFBWarnings(
-    value="STCAL_INVOKE_ON_STATIC_DATE_FORMAT_INSTANCE",
-    justification="TODO: not sure how to fix this")
   public JSONObject buildPayload(BuildData buildData, String jenkinsUrl, List<String> logLines) {
     JSONObject payload = new JSONObject();
     payload.put("data", buildData.toJson());
@@ -69,7 +66,7 @@ abstract class AbstractLogstashIndexerDao implements LogstashIndexerDao {
     payload.put("source", "jenkins");
     payload.put("source_host", jenkinsUrl);
     payload.put("@buildTimestamp", buildData.getTimestamp());
-    payload.put("@timestamp", BuildData.DATE_FORMATTER.format(Calendar.getInstance().getTime()));
+    payload.put("@timestamp", BuildData.formatDateIso(new Date()));
     payload.put("@version", 1);
 
     return payload;

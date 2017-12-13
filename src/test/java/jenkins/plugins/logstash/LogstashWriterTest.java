@@ -28,7 +28,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.GregorianCalendar;
+import java.util.Date;
 import java.util.List;
 
 import static org.hamcrest.core.StringContains.containsString;
@@ -104,15 +104,13 @@ public class LogstashWriterTest {
     when(mockBuild.getParent()).thenReturn(mockProject);
     when(mockBuild.getBuiltOn()).thenReturn(null);
     when(mockBuild.getNumber()).thenReturn(123456);
-    when(mockBuild.getTimestamp()).thenReturn(new GregorianCalendar());
+    when(mockBuild.getTime()).thenReturn(new Date());
     when(mockBuild.getRootBuild()).thenReturn(mockBuild);
     when(mockBuild.getBuildVariables()).thenReturn(Collections.emptyMap());
     when(mockBuild.getSensitiveBuildVariables()).thenReturn(Collections.emptySet());
     when(mockBuild.getEnvironments()).thenReturn(null);
     when(mockBuild.getAction(AbstractTestResultAction.class)).thenReturn(mockTestResultAction);
-    when(mockBuild.getLog(0)).thenReturn(Arrays.asList());
     when(mockBuild.getLog(3)).thenReturn(Arrays.asList("line 1", "line 2", "line 3", "Log truncated..."));
-    when(mockBuild.getLog(Integer.MAX_VALUE)).thenReturn(Arrays.asList("line 1", "line 2", "line 3", "line 4"));
     when(mockBuild.getEnvironment(null)).thenReturn(new EnvVars());
 
     when(mockTestResultAction.getTotalCount()).thenReturn(0);
@@ -158,7 +156,7 @@ public class LogstashWriterTest {
     // Verify that the BuildData constructor is what is being called here.
     // This also lets us verify that in the instantiation failure cases we do not construct BuildData.
     verify(mockBuild).getId();
-    verify(mockBuild, times(2)).getResult();
+    verify(mockBuild, times(1)).getResult();
     verify(mockBuild, times(2)).getParent();
     verify(mockBuild, times(2)).getProject();
     verify(mockBuild, times(1)).getStartTimeInMillis();
@@ -169,7 +167,7 @@ public class LogstashWriterTest {
     verify(mockBuild).getAction(AbstractTestResultAction.class);
     verify(mockBuild).getBuiltOn();
     verify(mockBuild, times(2)).getNumber();
-    verify(mockBuild).getTimestamp();
+    verify(mockBuild).getTime();
     verify(mockBuild, times(4)).getRootBuild();
     verify(mockBuild).getBuildVariables();
     verify(mockBuild).getSensitiveBuildVariables();

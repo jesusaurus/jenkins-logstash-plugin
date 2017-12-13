@@ -120,6 +120,7 @@ public class LogstashBuildWrapper extends BuildWrapper {
     return (DescriptorImpl) super.getDescriptor();
   }
 
+  @CheckForNull
   public SecureGroovyScript getSecureGroovyScript() {
     return secureGroovyScript;
   }
