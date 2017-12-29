@@ -24,6 +24,7 @@
 
 package jenkins.plugins.logstash.persistence;
 
+import java.nio.charset.Charset;
 import java.util.Calendar;
 import java.util.List;
 
@@ -43,6 +44,7 @@ public abstract class AbstractLogstashIndexerDao implements LogstashIndexerDao {
   protected final String key;
   protected final String username;
   protected final String password;
+  private Charset charset;
 
   public AbstractLogstashIndexerDao(String host, int port, String key, String username, String password) {
     this.host = host;
@@ -54,6 +56,27 @@ public abstract class AbstractLogstashIndexerDao implements LogstashIndexerDao {
     if (StringUtils.isBlank(host)) {
       throw new IllegalArgumentException("host name is required");
     }
+  }
+
+  /**
+   * Sets the charset used to push data to the indexer
+   *
+   *@param charset The charset to push data
+   */
+  @Override
+  public void setCharset(Charset charset)
+  {
+    this.charset = charset;
+  }
+
+  /**
+   * Gets the configured charset used to push data to the indexer
+   *
+   * @return charste to push data
+   */
+  public Charset getCharset()
+  {
+    return charset;
   }
 
   @Override
