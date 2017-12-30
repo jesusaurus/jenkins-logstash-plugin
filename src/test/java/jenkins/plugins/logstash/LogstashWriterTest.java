@@ -42,7 +42,7 @@ public class LogstashWriterTest {
                                              final BuildData data) {
     return new LogstashWriter(testBuild, error, null, testBuild.getCharset()) {
       @Override
-      LogstashIndexerDao getDao() throws InstantiationException {
+      protected LogstashIndexerDao createDao() throws InstantiationException {
         if (indexer == null) {
           throw new InstantiationException("DoaTestInstantiationException");
         }
@@ -52,7 +52,7 @@ public class LogstashWriterTest {
 
       @Override
       BuildData getBuildData() {
-        assertNotNull("BuildData should never be requested for missing dao.", this.dao);
+        assertNotNull("BuildData should never be requested for missing dao.", this.getDao());
 
         // For testing, providing null data means use the actual method
         if (data == null) {
