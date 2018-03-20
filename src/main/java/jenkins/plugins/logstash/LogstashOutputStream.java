@@ -1,127 +1,104 @@
+/*
+ * The MIT License
+ *
+ * Copyright 2014 K Jonathan Harker & Rusty Gerard
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
+ */
+
 package jenkins.plugins.logstash;
 
-
-import jenkins.plugins.logstash.LogstashBuildWrapper;
-import jenkins.plugins.logstash.LogstashBuildWrapper.RedisBlock;
-import jenkins.plugins.logstash.LogstashBuildWrapper.BuildBlock;
-
-import hudson.console.PlainTextConsoleOutputStream;
+import hudson.console.ConsoleNote;
+import hudson.console.LineTransformationOutputStream;
 
 import java.io.IOException;
 import java.io.OutputStream;
-import java.io.PrintWriter;
-import java.io.StringWriter;
+import java.util.ArrayList;
+import java.util.List;
 
-import net.sf.json.JSONObject;
+import com.michelin.cio.hudson.plugins.maskpasswords.MaskPasswordsBuildWrapper.VarPasswordPair;
+import com.michelin.cio.hudson.plugins.maskpasswords.MaskPasswordsOutputStream;
 
-import redis.clients.jedis.Jedis;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
+/**
+ * Output stream that writes each line to the provided delegate output stream
+ * and also sends it to an indexer for logstash to consume.
+ *
+ * @author K Jonathan Harker
+ * @author Rusty Gerard
+ */
+public class LogstashOutputStream extends LineTransformationOutputStream {
+  private final OutputStream delegate;
+  private final LogstashWriter logstash;
 
-public class LogstashOutputStream extends PlainTextConsoleOutputStream {
+  public LogstashOutputStream(OutputStream delegate, LogstashWriter logstash) {
+    super();
+    this.delegate = delegate;
+    this.logstash = logstash;
+  }
 
-    protected OutputStream delegate;
+  // for testing purposes
+  LogstashWriter getLogstashWriter()
+  {
+    return logstash;
+  }
 
-    protected boolean connFailed;
-    protected Jedis jedis;
-
-    protected RedisBlock rBlock;
-    protected BuildBlock bBlock;
-
-    public LogstashOutputStream(OutputStream d) {
-        super(d);
-        delegate = d;
-
-        connFailed = false;
-        jedis = null;
+  public MaskPasswordsOutputStream maskPasswords(List<VarPasswordPair> passwords) {
+    List<String> passwordStrings = new ArrayList<String>();
+    for (VarPasswordPair password: passwords) {
+      passwordStrings.add(password.getPassword());
     }
+    return new MaskPasswordsOutputStream(this, passwordStrings);
+  }
 
-    public boolean connect() {
-        boolean result;
-        try {
-            int port = (int)Integer.parseInt(rBlock.port);
-            jedis = new Jedis(rBlock.host, port);
+  @Override
+  @SuppressFBWarnings(
+    value="DM_DEFAULT_ENCODING",
+    justification="TODO: not sure how to fix this")
+  protected void eol(byte[] b, int len) throws IOException {
+    delegate.write(b, 0, len);
+    this.flush();
 
-            if (rBlock.pass != null && !rBlock.pass.isEmpty()) {
-                jedis.auth(rBlock.pass);
-            }
-
-            int numb = (int)Integer.parseInt(rBlock.numb);
-            if (numb != 0) {
-               jedis.select(numb);
-            }
-            result = true;
-        } catch (java.lang.Throwable t) {
-            result = false;
-            jedis = null;
-            connFailed = true;
-
-            StringWriter s = new StringWriter();
-            PrintWriter p = new PrintWriter(s);
-            t.printStackTrace(p);
-            String error = "Unable to connect to redis: " + s.toString() + "\n";
-
-            try {
-                delegate.write(error.getBytes());
-                delegate.flush();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
-        return result;
+    if(!logstash.isConnectionBroken()) {
+      String line = new String(b, 0, len, logstash.getCharset()).trim();
+      line = ConsoleNote.removeNotes(line);
+      logstash.write(line);
     }
+  }
 
-    @Override
-    protected void eol(byte[] b, int len) throws IOException {
-        delegate.write(b, 0, len);
-        delegate.flush();
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  public void flush() throws IOException {
+    delegate.flush();
+    super.flush();
+  }
 
-        if (rBlock != null && bBlock != null) {
-            String line = new String(b, 0, len).trim();
-
-            if (jedis != null && !line.isEmpty() && !connFailed) {
-                String blob = makeJson(line).toString();
-                jedis.rpush(rBlock.key, blob);
-            }
-        }
-    }
-
-    protected JSONObject makeJson(String line) {
-        if (rBlock == null || bBlock == null) {
-            return null;
-        }
-
-        JSONObject fields = new JSONObject();
-        fields.put("logsource", rBlock.type);
-        fields.put("program", "jenkins");
-        fields.put("job", bBlock.jobName);
-        fields.put("build", bBlock.buildNum);
-        fields.put("node", bBlock.buildHost);
-        fields.put("root-job", bBlock.rootJobName);
-        fields.put("root-build", bBlock.rootBuildNum);
-
-        JSONObject json = new JSONObject();
-        json.put("@fields", fields);
-        json.put("@type", rBlock.type);
-        json.put("@message", line);
-        json.put("@source_host", new String("jenkins"));
-
-        return json;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void flush() throws IOException {
-        delegate.flush();
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void close() throws IOException {
-        delegate.close();
-        super.close();
-    }
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  public void close() throws IOException {
+    logstash.close();
+    delegate.close();
+    super.close();
+  }
 }

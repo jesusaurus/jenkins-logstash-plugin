@@ -1,26 +1,7 @@
+<?jelly escape-by-default='true'?>
 <j:jelly xmlns:j="jelly:core" xmlns:f="/lib/form">
-    <f:block>
-        <table>
-            <f:optionalBlock name="redis" title="Redis" checked="${instance.useRedis}">
-                <f:entry title="${%Host}" field="host">
-                    <f:textbox value="${instance.redis.host}"/>
-                </f:entry>
-                <f:entry title="${%Port}" field="port">
-                    <f:textbox value="${instance.redis.port}" default="6379" />
-                </f:entry>
-                <f:entry title="${%Database Number}" field="numb">
-                    <f:textbox value="${instance.redis.numb}" default="0" />
-                </f:entry>
-                <f:entry title="${%Database Password}" field="pass">
-                    <f:textbox value="${instance.redis.pass}" />
-                </f:entry>
-                <f:entry title="${%DataType}" field="dataType">
-                    <f:textbox value="${instance.redis.dataType}" default="list" />
-                </f:entry>
-                <f:entry title="${%Key}" field="key">
-                    <f:textbox value="${instance.redis.key}" default="logstash" />
-                </f:entry>
-            </f:optionalBlock>
-        </table>
-    </f:block>
+  <f:advanced>
+    <f:entry field="script"/>
+    <f:property field="secureGroovyScript"/>
+  </f:advanced>
 </j:jelly>
