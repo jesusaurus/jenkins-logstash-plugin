@@ -48,6 +48,8 @@ import java.nio.charset.StandardCharsets;
 
 import com.google.common.collect.Range;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 /**
  * Elastic Search Data Access Object.
  *
@@ -66,6 +68,9 @@ public class ElasticSearchDao extends AbstractLogstashIndexerDao {
   }
 
   // Factored for unit testing
+  @SuppressFBWarnings(
+    value="DM_DEFAULT_ENCODING",
+    justification="TODO: not sure how to fix this")
   ElasticSearchDao(HttpClientBuilder factory, String host, int port, String key, String username, String password) {
     super(host, port, key, username, password);
 
@@ -142,6 +147,9 @@ public class ElasticSearchDao extends AbstractLogstashIndexerDao {
     }
   }
 
+  @SuppressFBWarnings(
+    value="DM_DEFAULT_ENCODING",
+    justification="TODO: not sure how to fix this")
   private String getErrorMessage(CloseableHttpResponse response) {
     ByteArrayOutputStream byteStream = null;
     PrintStream stream = null;

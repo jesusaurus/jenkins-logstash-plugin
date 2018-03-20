@@ -90,6 +90,9 @@ public class LogstashInstallation extends ToolInstallation {
     }
 
     @Override
+    @SuppressFBWarnings(
+      value="NP_PARAMETER_MUST_BE_NONNULL_BUT_MARKED_AS_NULLABLE",
+      justification="TODO: investigate")
     public ToolInstallation newInstance(StaplerRequest req, JSONObject formData) throws FormException {
       req.bindJSON(this, formData.getJSONObject("logstash"));
       save();
