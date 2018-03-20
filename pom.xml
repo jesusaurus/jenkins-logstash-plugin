@@ -20,6 +20,11 @@
       <id>repo.jenkins-ci.org</id>
       <url>https://repo.jenkins-ci.org/public/</url>
     </repository>
+		<repository>
+        <!-- FIXME remove! -->
+		    <id>jitpack.io</id>
+		    <url>https://jitpack.io</url>
+		</repository>    
   </repositories>
 
   <pluginRepositories>
@@ -130,9 +135,9 @@
     </dependency>
 
     <dependency>
-      <groupId>org.jenkins-ci.plugins</groupId>
-      <artifactId>script-security</artifactId>
-      <version>1.37</version>
+        <groupId>com.github.akostadinov</groupId>
+        <artifactId>script-security-plugin</artifactId>
+        <version>master-SNAPSHOT</version>
     </dependency>
 
     <dependency>
