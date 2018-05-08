@@ -49,7 +49,7 @@ public class ElasticSearchDaoTest {
   public void before() throws Exception {
     int port = (int) (Math.random() * 1000);
     dao = createDao("http://localhost:8200/logstash", "username", "password");
-
+    
     when(mockClientBuilder.build()).thenReturn(mockHttpClient);
     when(mockHttpClient.execute(any(HttpPost.class))).thenReturn(mockResponse);
     when(mockResponse.getStatusLine()).thenReturn(mockStatusLine);
@@ -196,6 +196,24 @@ public class ElasticSearchDaoTest {
         e.getMessage().contains("Something bad happened.") && e.getMessage().contains("HTTP error code: 500"));
         throw e;
     }
-
+    
+  }
+  @Test
+  public void getHttpPostSuccessWithUserInput() throws Exception {
+    String json = "{ 'foo': 'bar' }";
+    String mimeType = "application/json";
+    dao = createDao("http://localhost:8200/jenkins/logstash", "username", "password");
+    dao.setMimeType(mimeType);
+    HttpPost post = dao.getHttpPost(json);
+    HttpEntity entity = post.getEntity();
+    assertEquals("Content type do not match", mimeType, entity.getContentType().getValue());
+  }
+  @Test
+  public void getHttpPostWithFallbackInput() throws Exception {
+    String json = "{ 'foo': 'bar' }";
+    dao = createDao("http://localhost:8200/jenkins/logstash", "username", "password");
+    HttpPost post = dao.getHttpPost(json);
+    HttpEntity entity = post.getEntity();
+    assertEquals("Content type do not match", ContentType.APPLICATION_JSON.toString(), entity.getContentType().getValue());
   }
 }
