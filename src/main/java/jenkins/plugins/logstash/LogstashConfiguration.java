@@ -13,6 +13,7 @@ import org.kohsuke.stapler.StaplerRequest;
 
 import com.cloudbees.syslog.MessageFormat;
 
+import org.apache.commons.lang.time.FastDateFormat;
 import org.apache.http.client.utils.URIBuilder;
 import hudson.Extension;
 import hudson.init.InitMilestone;
@@ -32,9 +33,13 @@ import net.sf.json.JSONObject;
 public class LogstashConfiguration extends GlobalConfiguration
 {
   private static final Logger LOGGER = Logger.getLogger(LogstashConfiguration.class.getName());
+  private static final FastDateFormat MILLIS_FORMATTER = FastDateFormat.getInstance("yyyy-MM-dd'T'HH:mm:ss.SSSZ");
+  private static final FastDateFormat LEGACY_FORMATTER = FastDateFormat.getInstance("yyyy-MM-dd'T'HH:mm:ssZ");
+
   private LogstashIndexer<?> logstashIndexer;
   private boolean dataMigrated = false;
   private boolean enableGlobally = false;
+  private boolean milliSecondTimestamps = true;
   private transient LogstashIndexer<?> activeIndexer;
 
   public LogstashConfiguration()
@@ -51,6 +56,28 @@ public class LogstashConfiguration extends GlobalConfiguration
   public void setEnableGlobally(boolean enableGlobally)
   {
     this.enableGlobally = enableGlobally;
+  }
+
+  public boolean isMilliSecondTimestamps()
+  {
+    return milliSecondTimestamps;
+  }
+
+  public void setMilliSecondTimestamps(boolean milliSecondTimestamps)
+  {
+    this.milliSecondTimestamps = milliSecondTimestamps;
+  }
+
+  public FastDateFormat getDateFormatter()
+  {
+    if (milliSecondTimestamps)
+    {
+      return MILLIS_FORMATTER;
+    }
+    else
+    {
+      return LEGACY_FORMATTER;
+    }
   }
 
   /**
@@ -161,6 +188,7 @@ public class LogstashConfiguration extends GlobalConfiguration
             LOGGER.log(Level.INFO, "unknown logstash Indexer type: " + type);
             break;
         }
+        milliSecondTimestamps = false;
         activeIndexer = logstashIndexer;
       }
       dataMigrated = true;

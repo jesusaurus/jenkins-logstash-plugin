@@ -1,11 +1,13 @@
 package jenkins.plugins.logstash;
 
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.text.MatchesPattern.matchesPattern;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertThat;
 import static org.powermock.api.mockito.PowerMockito.when;
+import static org.mockito.ArgumentMatchers.any;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -58,8 +60,11 @@ public class LogstashIntegrationTest
     {
         memoryDao = new MemoryDao();
         PowerMockito.mockStatic(LogstashConfiguration.class);
+
         when(LogstashConfiguration.getInstance()).thenReturn(logstashConfiguration);
         when(logstashConfiguration.getIndexerInstance()).thenReturn(memoryDao);
+        PowerMockito.doCallRealMethod().when(logstashConfiguration).setMilliSecondTimestamps(any(Boolean.class));
+        when(logstashConfiguration.getDateFormatter()).thenCallRealMethod();
 
         slave = jenkins.createSlave();
         slave.setLabelString("myLabel");
@@ -203,4 +208,37 @@ public class LogstashIntegrationTest
       assertThat(lastLine.getJSONArray("message").get(0).toString(),equalTo("Finished: SUCCESS"));
     }
 
+    @Test
+    public void milliSecondTimestamps() throws Exception
+    {
+      logstashConfiguration.setMilliSecondTimestamps(true);
+      project.getBuildWrappersList().add(new LogstashBuildWrapper());
+      QueueTaskFuture<FreeStyleBuild> f = project.scheduleBuild2(0);
+
+      FreeStyleBuild build = f.get();
+      assertThat(build.getResult(), equalTo(Result.SUCCESS));
+      List<JSONObject> dataLines = memoryDao.getOutput();
+      for (JSONObject line: dataLines)
+      {
+        String timestamp = line.getString("@timestamp");
+        assertThat(timestamp,matchesPattern("^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}[+-]\\d{4}$"));
+      }
+    }
+
+    @Test
+    public void secondTimestamps() throws Exception
+    {
+      logstashConfiguration.setMilliSecondTimestamps(false);
+      project.getBuildWrappersList().add(new LogstashBuildWrapper());
+      QueueTaskFuture<FreeStyleBuild> f = project.scheduleBuild2(0);
+
+      FreeStyleBuild build = f.get();
+      assertThat(build.getResult(), equalTo(Result.SUCCESS));
+      List<JSONObject> dataLines = memoryDao.getOutput();
+      for (JSONObject line: dataLines)
+      {
+        String timestamp = line.getString("@timestamp");
+        assertThat(timestamp,matchesPattern("^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}[+-]\\d{4}$"));
+      }
+    }
 }
