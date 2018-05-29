@@ -18,6 +18,7 @@ import org.jenkinsci.plugins.envinject.EnvInjectJobPropertyInfo;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.mockito.Mock;
@@ -39,6 +40,7 @@ import hudson.model.queue.QueueTaskFuture;
 import hudson.plugins.ansicolor.AnsiColorBuildWrapper;
 import net.sf.json.JSONArray;
 import jenkins.plugins.logstash.persistence.MemoryDao;
+import net.sf.json.JSONException;
 import net.sf.json.JSONObject;
 
 @RunWith(PowerMockRunner.class)
@@ -51,6 +53,9 @@ public class LogstashIntegrationTest
 
     @Mock
     private LogstashConfiguration logstashConfiguration;
+
+    @Rule
+    public ExpectedException thrown = ExpectedException.none();
 
     private Slave slave;
 
@@ -139,6 +144,25 @@ public class LogstashIntegrationTest
         JSONObject data = firstLine.getJSONObject("data");
         assertThat(data.getString("buildHost"),equalTo(slave.getDisplayName()));
         assertThat(data.getString("buildLabel"),equalTo(slave.getLabelString()));
+    }
+
+    @Test
+    public void buildJobPropertyUpdatesResult() throws Exception
+    {
+      project.addProperty(new LogstashJobProperty());
+      QueueTaskFuture<FreeStyleBuild> f = project.scheduleBuild2(0);
+      FreeStyleBuild build = f.get();
+      assertThat(build.getResult(), equalTo(Result.SUCCESS));
+      List<JSONObject> dataLines = memoryDao.getOutput();
+      assertThat(dataLines.size(), is(4));
+      JSONObject firstLine = dataLines.get(0);
+      JSONObject lastLine = dataLines.get(dataLines.size()-1);
+      JSONObject data = firstLine.getJSONObject("data");
+      thrown.expect(JSONException.class);
+      thrown.expectMessage("JSONObject[\"result\"] not found.");
+      data.getString("result");
+      data = lastLine.getJSONObject("data");
+      assertThat(data.getString("result"),equalTo("SUCCESS"));
     }
 
     @Test

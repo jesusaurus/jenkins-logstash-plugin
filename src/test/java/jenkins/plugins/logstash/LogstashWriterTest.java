@@ -125,7 +125,6 @@ public class LogstashWriterTest {
     when(mockExecutor.getOwner()).thenReturn(mockComputer);
     when(mockComputer.getNode()).thenReturn(null);
 
-
     when(mockTestResultAction.getTotalCount()).thenReturn(0);
     when(mockTestResultAction.getSkipCount()).thenReturn(0);
     when(mockTestResultAction.getFailCount()).thenReturn(0);
@@ -160,7 +159,7 @@ public class LogstashWriterTest {
     // Verify that the BuildData constructor is what is being called here.
     // This also lets us verify that in the instantiation failure cases we do not construct BuildData.
     verify(mockBuild).getId();
-    verify(mockBuild).getResult();
+    verify(mockBuild, times(2)).getResult();
     verify(mockBuild, times(2)).getParent();
     verify(mockBuild, times(2)).getProject();
     verify(mockBuild, times(1)).getStartTimeInMillis();
@@ -253,6 +252,7 @@ public class LogstashWriterTest {
     verify(mockDao).buildPayload(eq(mockBuildData), eq("http://my-jenkins-url"), anyListOf(String.class));
     verify(mockDao).push("{\"data\":{},\"message\":[\"test\"],\"source\":\"jenkins\",\"source_host\":\"http://my-jenkins-url\",\"@version\":1}");
     verify(mockBuild).getCharset();
+    verify(mockBuildData).updateResult();
   }
 
   @Test
@@ -271,6 +271,7 @@ public class LogstashWriterTest {
 
     verify(mockDao).buildPayload(eq(mockBuildData), eq("http://my-jenkins-url"), anyListOf(String.class));
     verify(mockDao).push("{\"data\":{},\"message\":[\"test\"],\"source\":\"jenkins\",\"source_host\":\"http://my-jenkins-url\",\"@version\":1}");
+    verify(mockBuildData).updateResult();
   }
 
   @Test
@@ -315,6 +316,7 @@ public class LogstashWriterTest {
     verify(mockDao, times(2)).push("{\"data\":{},\"message\":[\"test\"],\"source\":\"jenkins\",\"source_host\":\"http://my-jenkins-url\",\"@version\":1}");
     verify(mockDao, times(2)).getDescription();
     verify(mockBuild).getCharset();
+    verify(mockBuildData, times(2)).updateResult();
   }
 
   @Test
@@ -337,6 +339,8 @@ public class LogstashWriterTest {
       "java.io.IOException: Unable to read log file");
     verify(mockDao).push("{\"data\":{},\"message\":[\"test\"],\"source\":\"jenkins\",\"source_host\":\"http://my-jenkins-url\",\"@version\":1}");
     verify(mockDao).buildPayload(eq(mockBuildData), eq("http://my-jenkins-url"), logLinesCaptor.capture());
+    verify(mockBuildData).updateResult();
+
     List<String> actualLogLines = logLinesCaptor.getValue();
 
     assertThat("The exception was not sent to Logstash", actualLogLines.get(0), containsString(expectedErrorLines.get(0)));

@@ -163,6 +163,7 @@ public class BuildData {
   private int buildNum;
   private long buildDuration;
   private transient String timestamp; // This belongs in the root object
+  private transient Run<?, ?> build;
   private String rootProjectName;
   private String rootFullProjectName;
   private String rootProjectDisplayName;
@@ -230,6 +231,7 @@ public class BuildData {
 
   private void initData(Run<?, ?> build, Date currentTime) {
 
+    this.build = build;
     Executor executor = build.getExecutor();
     if (executor == null) {
         buildHost = "master";
@@ -245,8 +247,6 @@ public class BuildData {
         }
     }
 
-    Result result = build.getResult();
-    this.result = result == null ? null : result.toString();
     id = build.getId();
     projectName = build.getParent().getName();
     fullProjectName = build.getParent().getFullName();
@@ -255,14 +255,22 @@ public class BuildData {
     description = build.getDescription();
     url = build.getUrl();
     buildNum = build.getNumber();
-
-    Action testResultAction = build.getAction(AbstractTestResultAction.class);
-    if (testResultAction != null) {
-      testResults = new TestData(testResultAction);
-    }
-
     buildDuration = currentTime.getTime() - build.getStartTimeInMillis();
     timestamp = LogstashConfiguration.getInstance().getDateFormatter().format(build.getTimestamp().getTime());
+    updateResult();
+  }
+
+  public void updateResult()
+  {
+    if (result == null && build.getResult() != null)
+    {
+      Result result = build.getResult();
+      this.result = result == null ? null : result.toString();
+    }
+    Action testResultAction = build.getAction(AbstractTestResultAction.class);
+    if (testResults == null && testResultAction != null) {
+      testResults = new TestData(testResultAction);
+    }
   }
 
   @Override
