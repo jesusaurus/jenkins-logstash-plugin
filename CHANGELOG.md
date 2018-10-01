@@ -1,3 +1,16 @@
+2.3.0
+-----
+* [JENKINS-52643] Allow programmatic configuration (#77)
+
+2.2.0
+-----
+* [JENKINS-51793] Failed to save when not configured (#76)
+* [JENKINS-52712] Make compatible with JEP-200 (#79)
+* [JENKINS-51029] Added support for custom ElasticSearch SSL certificate (#75)
+* Upgrade pom to use Jenkins 2.60.3 (#70)
+* Add defaultGoal to pom.xml
+
+
 2.1.0
 -----
 * [JENKINS-51793] explicit enable (#68)
