@@ -10,7 +10,6 @@
 * Upgrade pom to use Jenkins 2.60.3 (#70)
 * Add defaultGoal to pom.xml
 
-
 2.1.0
 -----
 * [JENKINS-51793] explicit enable (#68)
@@ -25,7 +24,6 @@
 * Use mime type from config field in Elasticsearch indexer while posting HTTP request (#41)
 * millisecond timestamps (#57)
 
-
 2.0.0
 -----
 * [JENKINS-49960] use a Jobproperty instead of a BuildWrapper (#55) :warning:
@@ -33,8 +31,7 @@
 * remove dependency to maskpasswords (#48)
 * [JENKINS-49451] Fix logstash Notifier step (#53)
 * add a pipeline step with block (#51)
-* move configuration from ToolInstallation to GlobalConfiguration (#43) :warning: 
-
+* move configuration from ToolInstallation to GlobalConfiguration (#43) :warning:
 
 1.4.0
 -----
@@ -123,6 +120,5 @@
 * Remove data marked by ansi-conceal escape sequence.
 
 0.7.0
-=====
-
+-----
 * Initial working release.

@@ -1,296 +1,21 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
-
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
-  
-  <properties>
-    <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
-    <skipIntegrationTests>true</skipIntegrationTests>
-    <jenkins-test-harness.version>2.23</jenkins-test-harness.version>
-    <java.level>8</java.level>
-    <jenkins.version>2.60.3</jenkins.version>
-    <jenkins-credentials.version>2.1.11</jenkins-credentials.version>
-  </properties>
-  
+
   <parent>
     <groupId>org.jenkins-ci.plugins</groupId>
     <artifactId>plugin</artifactId>
-    <version>3.15</version>
+    <version>3.26</version>
   </parent>
 
-  <repositories>
-    <repository>
-      <id>repo.jenkins-ci.org</id>
-      <url>https://repo.jenkins-ci.org/public/</url>
-    </repository>
-  </repositories>
-
-  <pluginRepositories>
-    <pluginRepository>
-      <id>repo.jenkins-ci.org</id>
-      <url>https://repo.jenkins-ci.org/public/</url>
-    </pluginRepository>
-  </pluginRepositories>
-
-  <scm>
-    <connection>scm:git:git://github.com/jenkinsci/logstash-plugin.git</connection>
-    <developerConnection>scm:git:git@github.com:jenkinsci/logstash-plugin.git</developerConnection>
-    <url>https://github.com/jenkinsci/logstash-plugin</url>
-    <tag>HEAD</tag>
-  </scm>
-
-  <distributionManagement>
-    <repository>
-      <id>maven.jenkins-ci.org</id>
-      <name>jenkinsci-releases</name>
-      <url>https://repo.jenkins-ci.org/releases</url>
-    </repository>
-    <snapshotRepository>
-      <id>maven.jenkins-ci.org</id>
-      <name>jenkinsci-snapshots</name>
-      <url>https://repo.jenkins-ci.org/snapshots</url>
-    </snapshotRepository>
-  </distributionManagement>
-
   <artifactId>logstash</artifactId>
-  <packaging>hpi</packaging>
   <version>2.3.1-SNAPSHOT</version>
+  <packaging>hpi</packaging>
+
   <name>Logstash</name>
   <description>A Logstash agent to send Jenkins logs to a Logstash indexer.</description>
   <url>https://wiki.jenkins.io/display/JENKINS/Logstash+Plugin</url>
 
-  <dependencies>
-    <dependency>
-      <groupId>org.apache.httpcomponents</groupId>
-      <artifactId>httpclient</artifactId>
-      <version>4.4</version>
-    </dependency>
-
-    <dependency>
-      <groupId>redis.clients</groupId>
-      <artifactId>jedis</artifactId>
-      <version>2.6.0</version>
-    </dependency>
-
-    <dependency>
-      <groupId>com.rabbitmq</groupId>
-      <artifactId>amqp-client</artifactId>
-      <version>3.3.5</version>
-      <type>jar</type>
-      <scope>compile</scope>
-    </dependency>
-
-    <dependency>
-      <groupId>com.google.code.gson</groupId>
-      <artifactId>gson</artifactId>
-      <version>2.3.1</version>
-      <type>jar</type>
-      <scope>compile</scope>
-    </dependency>
-
-    <dependency>
-      <groupId>org.mockito</groupId>
-      <artifactId>mockito-core</artifactId>
-      <version>2.13.0</version>
-      <scope>test</scope>
-    </dependency>
-    
-    <dependency>
-      <groupId>org.awaitility</groupId>
-      <artifactId>awaitility</artifactId>
-      <version>3.0.0</version>
-      <type>jar</type>
-      <scope>test</scope>
-    </dependency>
-
-    <dependency>
-      <groupId>com.cloudbees</groupId>
-      <artifactId>syslog-java-client</artifactId>
-      <version>1.0.6</version>
-      <type>jar</type>
-      <scope>compile</scope>
-    </dependency>
-
-
-    <dependency>
-      <groupId>org.jenkins-ci.plugins</groupId>
-      <artifactId>junit</artifactId>
-      <version>1.10</version>
-    </dependency>
-
-    <dependency>
-      <groupId>org.jenkins-ci.plugins</groupId>
-      <artifactId>structs</artifactId>
-      <version>1.14</version>
-    </dependency>
-    <dependency>
-    	<groupId>org.jenkins-ci.plugins.workflow</groupId>
-    	<artifactId>workflow-step-api</artifactId>
-    	<version>2.15</version>
-  	<optional>true</optional>
-    </dependency>
-    <dependency>
-    	<groupId>org.jenkins-ci.plugins</groupId>
-    	<artifactId>script-security</artifactId>
-    	<version>1.39</version>
-    	<scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.jenkins-ci.plugins</groupId>
-      <artifactId>credentials</artifactId>
-      <version>${jenkins-credentials.version}</version>
-    </dependency>
-    <dependency>
-    	<groupId>org.powermock</groupId>
-    	<artifactId>powermock-api-mockito2</artifactId>
-    	<version>2.0.0-beta.5</version>
-    	<scope>test</scope>
-    </dependency>
-    <dependency>
-    	<groupId>org.powermock</groupId>
-    	<artifactId>powermock-module-junit4</artifactId>
-    	<version>2.0.0-beta.5</version>
-    	<scope>test</scope>
-    </dependency>
-    <dependency>
-    	<groupId>org.jenkins-ci.plugins</groupId>
-    	<artifactId>mask-passwords</artifactId>
-    	<version>2.10.1</version>
-    	<scope>test</scope>
-    </dependency>
-    <dependency>
-       <groupId>org.jenkins-ci.plugins</groupId>
-       <artifactId>envinject</artifactId>
-       <version>2.1.5</version>
-       <scope>test</scope>
-    </dependency>
-    <dependency>
-    	<groupId>org.hamcrest</groupId>
-    	<artifactId>java-hamcrest</artifactId>
-    	<version>2.0.0.0</version>
-    	<scope>test</scope>
-    </dependency>
-    <dependency>
-    	<groupId>org.jenkins-ci.plugins</groupId>
-    	<artifactId>ansicolor</artifactId>
-    	<version>0.5.2</version>
-    	<scope>test</scope>
-    </dependency>
-	<dependency>
-        <groupId>org.jenkins-ci.plugins.workflow</groupId>
-        <artifactId>workflow-cps</artifactId>
-        <version>2.45</version>
-        <scope>test</scope>
-     </dependency>
-     <dependency>
-        <groupId>org.jenkins-ci.plugins.workflow</groupId>
-        <artifactId>workflow-job</artifactId>
-        <version>2.12.2</version>
-        <scope>test</scope>
-     </dependency>
-     <dependency>
-        <groupId>org.jenkins-ci.plugins.workflow</groupId>
-        <artifactId>workflow-basic-steps</artifactId>
-        <version>2.7</version>
-        <scope>test</scope>
-     </dependency>
-     <dependency>
-        <groupId>org.jenkins-ci.plugins.workflow</groupId>
-        <artifactId>workflow-scm-step</artifactId>
-        <version>2.6</version>
-        <scope>test</scope>
-	 </dependency>
-     <dependency>
-        <groupId>org.jenkins-ci.plugins.workflow</groupId>
-        <artifactId>workflow-durable-task-step</artifactId>
-        <version>2.19</version>
-        <scope>test</scope>
-	 </dependency>
-</dependencies>
-
-  <build>
-    <defaultGoal>clean verify</defaultGoal>
-    <plugins>
-
-	<plugin>
-        <groupId>org.jenkins-ci.tools</groupId>
-        <artifactId>maven-hpi-plugin</artifactId>
-        <extensions>true</extensions>
-        <configuration>
-          <compatibleSinceVersion>2.0</compatibleSinceVersion>
-        </configuration>
-      </plugin>   
-       
-      <!-- https://issues.jenkins-ci.org/browse/INFRA-588 -->
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-deploy-plugin</artifactId>
-        <version>2.6</version>
-        <dependencies>
-          <dependency>
-            <groupId>org.apache.maven.wagon</groupId>
-            <artifactId>wagon-http</artifactId>
-            <version>2.10</version>
-            <type>jar</type>
-          </dependency>
-        </dependencies>
-      </plugin>
-
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-compiler-plugin</artifactId>
-        <configuration>
-          <source>1.7</source>
-          <target>1.7</target>
-        </configuration>
-      </plugin>
-
-      <!-- http://jira.codehaus.org/browse/MRELEASE-812 -->
-      <plugin>
-        <artifactId>maven-release-plugin</artifactId>
-        <dependencies>
-          <dependency>
-            <groupId>org.apache.maven.scm</groupId>
-            <artifactId>maven-scm-api</artifactId>
-            <version>1.9.1</version>
-          </dependency>
-          <dependency>
-            <groupId>org.apache.maven.scm</groupId>
-            <artifactId>maven-scm-provider-gitexe</artifactId>
-            <version>1.9.1</version>
-          </dependency>
-        </dependencies>
-      </plugin>
-
-      <!-- https://issues.jenkins-ci.org/browse/JENKINS-21977 -->
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-surefire-plugin</artifactId>
-        <configuration>
-          <excludes>
-            <exclude>InjectedTest.java</exclude>
-          </excludes>
-        </configuration>
-      </plugin>
- 
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-failsafe-plugin</artifactId>
-        <version>2.20</version>
-        <configuration>
-          <skipITs>${skipIntegrationTests}</skipITs>
-        </configuration>
-        <executions>
-          <execution>
-            <goals>
-              <goal>integration-test</goal>
-              <goal>verify</goal>
-            </goals>
-          </execution>
-        </executions>
-      </plugin>
-    </plugins> 
-  </build>
-  
   <developers>
     <developer>
       <id>jesusaurus</id>
@@ -309,4 +34,251 @@
     </developer>
   </developers>
 
+  <scm>
+    <connection>scm:git:git://github.com/jenkinsci/logstash-plugin.git</connection>
+    <developerConnection>scm:git:git@github.com:jenkinsci/logstash-plugin.git</developerConnection>
+    <tag>HEAD</tag>
+    <url>https://github.com/jenkinsci/logstash-plugin</url>
+  </scm>
+  <distributionManagement>
+    <repository>
+      <id>maven.jenkins-ci.org</id>
+      <name>jenkinsci-releases</name>
+      <url>https://repo.jenkins-ci.org/releases</url>
+    </repository>
+    <snapshotRepository>
+      <id>maven.jenkins-ci.org</id>
+      <name>jenkinsci-snapshots</name>
+      <url>https://repo.jenkins-ci.org/snapshots</url>
+    </snapshotRepository>
+  </distributionManagement>
+
+  <properties>
+    <skipIntegrationTests>true</skipIntegrationTests>
+    <java.level>8</java.level>
+    <jenkins.version>2.60.3</jenkins.version>
+    <jenkins-credentials.version>2.1.11</jenkins-credentials.version>
+  </properties>
+
+  <dependencies>
+    <dependency>
+      <groupId>org.apache.httpcomponents</groupId>
+      <artifactId>httpclient</artifactId>
+      <version>4.4</version>
+    </dependency>
+    <dependency>
+      <groupId>redis.clients</groupId>
+      <artifactId>jedis</artifactId>
+      <version>2.6.0</version>
+    </dependency>
+    <dependency>
+      <groupId>com.rabbitmq</groupId>
+      <artifactId>amqp-client</artifactId>
+      <version>3.3.5</version>
+    </dependency>
+    <dependency>
+      <groupId>com.google.code.gson</groupId>
+      <artifactId>gson</artifactId>
+      <version>2.3.1</version>
+    </dependency>
+    <dependency>
+      <groupId>com.cloudbees</groupId>
+      <artifactId>syslog-java-client</artifactId>
+      <version>1.0.6</version>
+    </dependency>
+    <dependency>
+      <groupId>org.jenkins-ci.plugins</groupId>
+      <artifactId>junit</artifactId>
+      <version>1.10</version>
+    </dependency>
+    <dependency>
+      <groupId>org.jenkins-ci.plugins</groupId>
+      <artifactId>structs</artifactId>
+      <version>1.14</version>
+    </dependency>
+    <dependency>
+      <groupId>org.jenkins-ci.plugins</groupId>
+      <artifactId>credentials</artifactId>
+      <version>${jenkins-credentials.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.jenkins-ci.plugins.workflow</groupId>
+      <artifactId>workflow-step-api</artifactId>
+      <version>2.15</version>
+      <optional>true</optional>
+    </dependency>
+    <dependency>
+      <groupId>org.mockito</groupId>
+      <artifactId>mockito-core</artifactId>
+      <version>2.13.0</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.powermock</groupId>
+      <artifactId>powermock-api-mockito2</artifactId>
+      <version>2.0.0-beta.5</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.powermock</groupId>
+      <artifactId>powermock-module-junit4</artifactId>
+      <version>2.0.0-beta.5</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.awaitility</groupId>
+      <artifactId>awaitility</artifactId>
+      <version>3.0.0</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.jenkins-ci.plugins</groupId>
+      <artifactId>script-security</artifactId>
+      <version>1.39</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.jenkins-ci.plugins</groupId>
+      <artifactId>mask-passwords</artifactId>
+      <version>2.10.1</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.jenkins-ci.plugins</groupId>
+      <artifactId>envinject</artifactId>
+      <version>2.1.5</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.hamcrest</groupId>
+      <artifactId>java-hamcrest</artifactId>
+      <version>2.0.0.0</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.jenkins-ci.plugins</groupId>
+      <artifactId>ansicolor</artifactId>
+      <version>0.5.2</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.jenkins-ci.plugins.workflow</groupId>
+      <artifactId>workflow-cps</artifactId>
+      <version>2.45</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.jenkins-ci.plugins.workflow</groupId>
+      <artifactId>workflow-job</artifactId>
+      <version>2.12.2</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.jenkins-ci.plugins.workflow</groupId>
+      <artifactId>workflow-basic-steps</artifactId>
+      <version>2.7</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.jenkins-ci.plugins.workflow</groupId>
+      <artifactId>workflow-scm-step</artifactId>
+      <version>2.6</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.jenkins-ci.plugins.workflow</groupId>
+      <artifactId>workflow-durable-task-step</artifactId>
+      <version>2.19</version>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+
+  <repositories>
+    <repository>
+      <id>repo.jenkins-ci.org</id>
+      <url>https://repo.jenkins-ci.org/public/</url>
+    </repository>
+  </repositories>
+  <pluginRepositories>
+    <pluginRepository>
+      <id>repo.jenkins-ci.org</id>
+      <url>https://repo.jenkins-ci.org/public/</url>
+    </pluginRepository>
+  </pluginRepositories>
+
+  <build>
+    <defaultGoal>clean verify</defaultGoal>
+    <plugins>
+      <plugin>
+        <groupId>org.jenkins-ci.tools</groupId>
+        <artifactId>maven-hpi-plugin</artifactId>
+        <extensions>true</extensions>
+        <configuration>
+          <compatibleSinceVersion>2.0</compatibleSinceVersion>
+        </configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-failsafe-plugin</artifactId>
+        <version>2.20</version>
+        <configuration>
+          <skipITs>${skipIntegrationTests}</skipITs>
+        </configuration>
+        <executions>
+          <execution>
+            <goals>
+              <goal>integration-test</goal>
+              <goal>verify</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>com.github.ekryd.sortpom</groupId>
+        <artifactId>sortpom-maven-plugin</artifactId>
+        <version>2.10.0</version>
+        <configuration>
+          <predefinedSortOrder>recommended_2008_06</predefinedSortOrder>
+          <lineSeparator>\n</lineSeparator>
+          <encoding>${project.build.sourceEncoding}</encoding>
+          <keepBlankLines>true</keepBlankLines>
+          <createBackupFile>false</createBackupFile>
+          <verifyFail>Sort</verifyFail>
+          <sortDependencies>scope</sortDependencies>
+        </configuration>
+        <executions>
+          <execution>
+            <id>sortpom</id>
+            <goals>
+              <goal>verify</goal>
+            </goals>
+            <phase>validate</phase>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
+  <profiles>
+    <profile>
+      <id>verify-pom-sorting</id>
+      <activation>
+        <property>
+          <name>env.JENKINS_SERVER_COOKIE</name>
+        </property>
+      </activation>
+      <build>
+        <pluginManagement>
+          <plugins>
+            <plugin>
+              <groupId>com.github.ekryd.sortpom</groupId>
+              <artifactId>sortpom-maven-plugin</artifactId>
+              <configuration>
+                <verifyFail>Stop</verifyFail>
+              </configuration>
+            </plugin>
+          </plugins>
+        </pluginManagement>
+      </build>
+    </profile>
+  </profiles>
 </project>
