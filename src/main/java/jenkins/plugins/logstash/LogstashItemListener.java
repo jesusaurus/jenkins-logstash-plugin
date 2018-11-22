@@ -1,8 +1,6 @@
 package jenkins.plugins.logstash;
 
 import java.io.IOException;
-import java.util.Iterator;
-import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -21,7 +19,7 @@ import jenkins.model.Jenkins;
 public class LogstashItemListener extends ItemListener
 {
 
-  private static Logger LOGGER = Logger.getLogger(LogstashItemListener.class.getName());
+  private static final Logger LOGGER = Logger.getLogger(LogstashItemListener.class.getName());
 
   @Override
   public void onCreated(Item item)

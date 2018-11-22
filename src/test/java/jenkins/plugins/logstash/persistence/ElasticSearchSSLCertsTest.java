@@ -1,26 +1,15 @@
 package jenkins.plugins.logstash.persistence;
 
-import jenkins.plugins.logstash.configuration.ElasticSearch;
-
 import org.apache.http.HttpRequest;
 import org.apache.http.HttpResponse;
 import org.apache.http.HttpException;
 import org.apache.http.HttpStatus;
 import org.apache.http.protocol.HttpRequestHandler;
-import org.apache.http.client.ClientProtocolException;
-import org.apache.http.client.methods.CloseableHttpResponse;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.conn.ssl.TrustSelfSignedStrategy;
 import org.apache.http.protocol.HttpContext;
 import org.apache.http.impl.bootstrap.HttpServer;
 import org.apache.http.impl.bootstrap.ServerBootstrap;
-import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.impl.client.HttpClientBuilder;
-import org.apache.http.impl.client.HttpClients;
-import org.apache.http.ssl.SSLContextBuilder;
 import org.apache.http.ssl.SSLContexts;
 import org.hamcrest.core.IsInstanceOf;
-import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -38,7 +27,6 @@ import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.security.UnrecoverableKeyException;
 import java.security.cert.CertificateException;
-import java.security.cert.X509Certificate;
 
 import javax.net.ssl.KeyManager;
 import javax.net.ssl.KeyManagerFactory;
@@ -47,9 +35,6 @@ import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLHandshakeException;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
-
-import static org.hamcrest.Matchers.equalTo;
-import static org.junit.Assert.assertThat;
 
 public class ElasticSearchSSLCertsTest {
     @Rule
@@ -143,21 +128,18 @@ public class ElasticSearchSSLCertsTest {
         }
     }
 
-    protected HttpServer createLocalTestServer(SSLContext sslContext)
-            throws UnknownHostException {
-            final HttpServer server = ServerBootstrap.bootstrap()
-                .setLocalAddress(Inet4Address.getByName("localhost"))
-                .setSslContext(sslContext)
-                .registerHandler("*", new HttpRequestHandler(){
-                        @Override
-                        public void handle(final HttpRequest request, final HttpResponse response, final HttpContext context)
-                            throws HttpException, IOException {
-                            response.setStatusCode(HttpStatus.SC_OK);
-                        }
-                    })
-                .create();
-
-            return server;
+    protected HttpServer createLocalTestServer(SSLContext sslContext) throws UnknownHostException {
+        return ServerBootstrap.bootstrap()
+            .setLocalAddress(Inet4Address.getByName("localhost"))
+            .setSslContext(sslContext)
+            .registerHandler("*", new HttpRequestHandler(){
+                    @Override
+                    public void handle(final HttpRequest request, final HttpResponse response, final HttpContext context)
+                        throws HttpException, IOException {
+                        response.setStatusCode(HttpStatus.SC_OK);
+                    }
+                })
+            .create();
     }
 
     protected String getBaseUrl(HttpServer server) {
@@ -182,11 +164,8 @@ public class ElasticSearchSSLCertsTest {
         KeyStoreException, IOException, CertificateException, NoSuchAlgorithmException {
             final KeyStore store = KeyStore.getInstance(JAVA_KEYSTORE);
             URL url = getClass().getClassLoader().getResource(storeFileName);
-            InputStream inputStream = url.openStream();
-            try {
+            try (InputStream inputStream = url.openStream()) {
                 store.load(inputStream, password);
-            } finally {
-                inputStream.close();
             }
 
             return store;

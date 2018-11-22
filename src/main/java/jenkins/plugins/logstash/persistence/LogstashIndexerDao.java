@@ -25,7 +25,6 @@
 package jenkins.plugins.logstash.persistence;
 
 import java.io.IOException;
-import java.nio.charset.Charset;
 import java.util.List;
 
 import net.sf.json.JSONObject;
@@ -38,7 +37,7 @@ import net.sf.json.JSONObject;
  */
 public interface LogstashIndexerDao {
   @Deprecated
-  static enum IndexerType {
+  enum IndexerType {
     REDIS,
     RABBIT_MQ,
     ELASTICSEARCH,
@@ -46,16 +45,16 @@ public interface LogstashIndexerDao {
   }
 
   @Deprecated
-  static enum SyslogFormat {
+  enum SyslogFormat {
 	RFC5424,
 	RFC3164
   }
 
-  static enum SyslogProtocol {
+  enum SyslogProtocol {
 	UDP
   }
 
-  public String getDescription();
+  String getDescription();
 
   /**
    * Sends the log data to the Logstash indexer.
@@ -65,7 +64,7 @@ public interface LogstashIndexerDao {
    * @throws java.io.IOException
    *          The data is not written to the server
    */
-  public void push(String data) throws IOException;
+  void push(String data) throws IOException;
 
   /**
    * Builds a JSON payload compatible with the Logstash schema.
@@ -78,5 +77,5 @@ public interface LogstashIndexerDao {
    *          The log data to transmit, not null
    * @return The formatted JSON object, never null
    */
-  public JSONObject buildPayload(BuildData buildData, String jenkinsUrl, List<String> logLines);
+  JSONObject buildPayload(BuildData buildData, String jenkinsUrl, List<String> logLines);
 }

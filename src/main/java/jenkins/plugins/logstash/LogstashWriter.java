@@ -60,7 +60,7 @@ public class LogstashWriter {
   private final String jenkinsUrl;
   private final LogstashIndexerDao dao;
   private boolean connectionBroken;
-  private Charset charset;
+  private final Charset charset;
 
   public LogstashWriter(Run<?, ?> run, OutputStream error, TaskListener listener, Charset charset) {
     this.errorStream = error != null ? error : System.err;
@@ -78,8 +78,9 @@ public class LogstashWriter {
   }
 
   /**
-   * gets the charset that Jenkins is using during this build.
-   * @return
+   * Gets the charset that Jenkins is using during this build.
+   *
+   * @return the charset
    */
   public Charset getCharset()
   {

@@ -11,16 +11,12 @@ import javax.activation.MimeTypeParseException;
 import java.security.cert.CertificateException;
 
 import org.apache.commons.lang.StringUtils;
-import org.kohsuke.stapler.DataBoundConstructor;
-import org.kohsuke.stapler.DataBoundSetter;
-import org.kohsuke.stapler.QueryParameter;
 
 import com.cloudbees.plugins.credentials.CredentialsMatchers;
 import com.cloudbees.plugins.credentials.CredentialsProvider;
 import com.cloudbees.plugins.credentials.common.StandardCertificateCredentials;
 import com.cloudbees.plugins.credentials.common.StandardCredentials;
 import com.cloudbees.plugins.credentials.common.StandardListBoxModel;
-import com.cloudbees.plugins.credentials.domains.DomainRequirement;
 import org.kohsuke.stapler.AncestorInPath;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
@@ -31,7 +27,6 @@ import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.util.Collections;
-import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -220,7 +215,7 @@ public class ElasticSearch extends LogstashIndexer<ElasticSearchDao>
   {
     return (StandardCertificateCredentials) CredentialsMatchers.firstOrNull(
         CredentialsProvider.lookupCredentials(StandardCredentials.class,
-            Jenkins.getInstance(), ACL.SYSTEM, Collections.<DomainRequirement>emptyList()),
+            Jenkins.getInstance(), ACL.SYSTEM, Collections.emptyList()),
         CredentialsMatchers.withId(credentials)
     );
   }
@@ -252,7 +247,7 @@ public class ElasticSearch extends LogstashIndexer<ElasticSearchDao>
               CredentialsProvider.lookupCredentials(StandardCredentials.class,
                   Jenkins.getInstance(),
                   ACL.SYSTEM,
-                  Collections.EMPTY_LIST
+                  Collections.emptyList()
               )
           );
     }

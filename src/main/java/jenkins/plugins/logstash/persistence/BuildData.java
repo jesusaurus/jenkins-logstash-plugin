@@ -66,9 +66,9 @@ public class BuildData {
   // ISO 8601 date format
   private final static Logger LOGGER = Logger.getLogger(MethodHandles.lookup().lookupClass().getCanonicalName());
   public static class TestData {
-    private int totalCount, skipCount, failCount, passCount;
-    private List<FailedTest> failedTestsWithErrorDetail;
-    private List<String> failedTests;
+    private final int totalCount, skipCount, failCount, passCount;
+    private final List<FailedTest> failedTestsWithErrorDetail;
+    private final List<String> failedTests;
 
     public static class FailedTest {
       private final String fullName, errorDetails;
@@ -100,7 +100,7 @@ public class BuildData {
       }
 
       if (testResultAction == null) {
-        totalCount = skipCount = failCount = 0;
+        totalCount = skipCount = failCount = passCount = 0;
         failedTests = Collections.emptyList();
         failedTestsWithErrorDetail = Collections.emptyList();
         return;
@@ -111,8 +111,8 @@ public class BuildData {
       failCount = testResultAction.getFailCount();
       passCount = totalCount - skipCount - failCount;
 
-      failedTests = new ArrayList<String>();
-      failedTestsWithErrorDetail = new ArrayList<FailedTest>();
+      failedTests = new ArrayList<>();
+      failedTestsWithErrorDetail = new ArrayList<>();
       for (TestResult result : testResultAction.getFailedTests()) {
           failedTests.add(result.getFullName());
           failedTestsWithErrorDetail.add(new FailedTest(result.getFullName(),result.getErrorDetails()));
@@ -185,7 +185,7 @@ public class BuildData {
     sensitiveBuildVariables = build.getSensitiveBuildVariables();
 
     // Get environment build variables and merge them into the buildVariables map
-    Map<String, String> buildEnvVariables = new HashMap<String, String>();
+    Map<String, String> buildEnvVariables = new HashMap<>();
     List<Environment> buildEnvironments = build.getEnvironments();
     if (buildEnvironments != null) {
       for (Environment env : buildEnvironments) {
@@ -225,7 +225,7 @@ public class BuildData {
       buildVariables = build.getEnvironment(listener);
     } catch (IOException | InterruptedException e) {
       LOGGER.log(WARNING,"Unable to get environment for " + build.getDisplayName(),e);
-      buildVariables = new HashMap<String, String>();
+      buildVariables = new HashMap<>();
     }
   }
 
