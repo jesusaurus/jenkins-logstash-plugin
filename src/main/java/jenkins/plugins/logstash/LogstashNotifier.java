@@ -121,7 +121,7 @@ public class LogstashNotifier extends Notifier implements SimpleBuildStep {
     return (Descriptor) super.getDescriptor();
   }
 
-  @Extension @Symbol("logstashSend")
+  @Extension
   public static class Descriptor extends BuildStepDescriptor<Publisher> {
 
     @Override

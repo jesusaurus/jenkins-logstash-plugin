@@ -7,6 +7,7 @@ import java.util.List;
 
 import org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
+
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Rule;
@@ -74,11 +75,11 @@ public class PipelineTest
   public void logstashSend() throws Exception
   {
     WorkflowJob p = j.jenkins.createProject(WorkflowJob.class, "p");
-    p.setDefinition(new CpsFlowDefinition("node {" +
+    p.setDefinition(new CpsFlowDefinition(
           "echo 'Message'\n" +
           "currentBuild.result = 'SUCCESS'\n" +
-          "logstashSend  failBuild: true, maxLines: 5" +
-    "}", true));
+          "logstashSend  failBuild: true, maxLines: 5"
+    , true));
     j.assertBuildStatusSuccess(p.scheduleBuild2(0).get());
     List<JSONObject> dataLines = memoryDao.getOutput();
     assertThat(dataLines.size(), equalTo(1));

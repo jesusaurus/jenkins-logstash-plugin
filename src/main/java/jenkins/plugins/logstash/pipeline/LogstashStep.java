@@ -1,15 +1,18 @@
 package jenkins.plugins.logstash.pipeline;
 
 import java.io.IOException;
+import java.util.HashSet;
+import java.util.Set;
 
 import javax.annotation.Nonnull;
 
-import org.jenkinsci.plugins.workflow.steps.AbstractStepDescriptorImpl;
 import org.jenkinsci.plugins.workflow.steps.AbstractStepExecutionImpl;
-import org.jenkinsci.plugins.workflow.steps.AbstractStepImpl;
 import org.jenkinsci.plugins.workflow.steps.BodyExecutionCallback;
 import org.jenkinsci.plugins.workflow.steps.BodyInvoker;
+import org.jenkinsci.plugins.workflow.steps.Step;
 import org.jenkinsci.plugins.workflow.steps.StepContext;
+import org.jenkinsci.plugins.workflow.steps.StepDescriptor;
+import org.jenkinsci.plugins.workflow.steps.StepExecution;
 import org.kohsuke.stapler.DataBoundConstructor;
 
 import hudson.Extension;
@@ -19,18 +22,35 @@ import jenkins.YesNoMaybe;
 import jenkins.plugins.logstash.LogstashConsoleLogFilter;
 
 /**
- * Pipeline plug-in step for logstash.
+ * This is the pipeline counterpart of the LogstashJobProperty.
+ * This step will send the logs line by line to an indexer.
  */
-public class LogstashStep extends AbstractStepImpl {
+public class LogstashStep extends Step {
 
   /** Constructor. */
   @DataBoundConstructor
   public LogstashStep() {}
 
+  @Override
+  public StepExecution start(StepContext context) throws Exception
+  {
+    return new Execution(context);
+  }
+
   /** Execution for {@link LogstashStep}. */
-  public static class ExecutionImpl extends AbstractStepExecutionImpl {
+  public static class Execution extends AbstractStepExecutionImpl  {
+
+    public Execution(StepContext context)
+    {
+      super(context);
+    }
 
     private static final long serialVersionUID = 1L;
+
+    @Override
+    public void onResume()
+    {
+    }
 
     /** {@inheritDoc} */
     @Override
@@ -61,12 +81,7 @@ public class LogstashStep extends AbstractStepImpl {
 
   /** Descriptor for {@link LogstashStep}. */
   @Extension(dynamicLoadable = YesNoMaybe.YES, optional = true)
-  public static class DescriptorImpl extends AbstractStepDescriptorImpl {
-
-    /** Constructor. */
-    public DescriptorImpl() {
-      super(ExecutionImpl.class);
-    }
+  public static class DescriptorImpl extends StepDescriptor {
 
     /** {@inheritDoc} */
     @Override
@@ -85,5 +100,14 @@ public class LogstashStep extends AbstractStepImpl {
     public boolean takesImplicitBlockArgument() {
       return true;
     }
+
+    @Override
+    public Set<? extends Class<?>> getRequiredContext()
+    {
+      Set<Class<?>> contexts = new HashSet<>();
+      contexts.add(Run.class);
+      return contexts;
+    }
   }
+
 }
