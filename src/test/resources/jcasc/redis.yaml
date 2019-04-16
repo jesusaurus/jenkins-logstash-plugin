@@ -1,0 +1,26 @@
+jenkins:
+  agentProtocols:
+  - "JNLP4-connect"
+  - "Ping"
+  disableRememberMe: false
+  mode: NORMAL
+  numExecutors: 2
+  primaryView:
+    all:
+      name: "all"
+  quietPeriod: 5
+  scmCheckoutRetryCount: 0
+  slaveAgentPort: 0
+  views:
+  - all:
+      name: "all"
+unclassified:
+  logstashConfiguration:
+    enableGlobally: true
+    enabled: true
+    logstashIndexer:
+        redis:
+            host: "localhost"
+            port: 9200
+            key: "redis"
+    milliSecondTimestamps: true

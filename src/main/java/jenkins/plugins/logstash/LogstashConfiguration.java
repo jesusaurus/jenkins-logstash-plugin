@@ -246,7 +246,7 @@ public class LogstashConfiguration extends GlobalConfiguration
       save();
       return true;
     }
-    
+
     configuring = true;
 
     // when we bind the stapler request we get a new instance of logstashIndexer.

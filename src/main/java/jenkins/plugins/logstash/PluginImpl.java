@@ -27,8 +27,12 @@ import hudson.DescriptorExtensionList;
 import hudson.Plugin;
 import hudson.model.Descriptor;
 import jenkins.plugins.logstash.configuration.LogstashIndexer;
+import jenkins.plugins.logstash.utils.URIConverter;
 
+import java.net.URI;
 import java.util.logging.Logger;
+
+import org.kohsuke.stapler.Stapler;
 
 public class PluginImpl extends Plugin {
   private final static Logger LOG = Logger.getLogger(PluginImpl.class.getName());
@@ -40,6 +44,9 @@ public class PluginImpl extends Plugin {
   @Override
   public void start() throws Exception {
     LOG.info("Logstash: a logstash agent to send jenkins logs to a logstash indexer.");
+
+    // Register a converter for URI, as nither Stapler nor apache commons beanutils have it
+    Stapler.CONVERT_UTILS.register(new URIConverter(), URI.class);
   }
 
   public DescriptorExtensionList<LogstashIndexer<?>, Descriptor<LogstashIndexer<?>>> getAllIndexers()

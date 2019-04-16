@@ -1,6 +1,7 @@
 package jenkins.plugins.logstash.configuration;
 
 import org.apache.commons.lang.StringUtils;
+import org.jenkinsci.Symbol;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
 import org.kohsuke.stapler.QueryParameter;
@@ -88,6 +89,7 @@ public class Redis extends HostBasedLogstashIndexer<RedisDao>
   }
 
   @Extension
+  @Symbol("redis")
   public static class RedisDescriptor extends LogstashIndexerDescriptor
   {
 

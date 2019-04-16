@@ -1,5 +1,6 @@
 package jenkins.plugins.logstash.configuration;
 
+import org.jenkinsci.Symbol;
 import org.kohsuke.stapler.DataBoundConstructor;
 
 import hudson.Extension;
@@ -20,6 +21,7 @@ public class Logstash extends HostBasedLogstashIndexer<LogstashDao>
   }
 
   @Extension
+  @Symbol("logstash")
   public static class Descriptor extends LogstashIndexerDescriptor
   {
 

@@ -11,6 +11,7 @@ import javax.activation.MimeTypeParseException;
 import java.security.cert.CertificateException;
 
 import org.apache.commons.lang.StringUtils;
+import org.jenkinsci.Symbol;
 
 import com.cloudbees.plugins.credentials.CredentialsMatchers;
 import com.cloudbees.plugins.credentials.CredentialsProvider;
@@ -74,7 +75,7 @@ public class ElasticSearch extends LogstashIndexer<ElasticSearchDao>
     this.uri = url.toURI();
   }
 
-  public void setUri(URI uri) throws URISyntaxException
+  public void setUri(URI uri)
   {
     this.uri = uri;
   }
@@ -221,6 +222,7 @@ public class ElasticSearch extends LogstashIndexer<ElasticSearchDao>
   }
 
   @Extension
+  @Symbol("elasticSearch")
   public static class ElasticSearchDescriptor extends LogstashIndexerDescriptor
   {
     @Override

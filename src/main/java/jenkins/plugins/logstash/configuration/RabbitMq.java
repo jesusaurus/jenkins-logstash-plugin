@@ -3,6 +3,7 @@ package jenkins.plugins.logstash.configuration;
 import java.nio.charset.Charset;
 
 import org.apache.commons.lang.StringUtils;
+import org.jenkinsci.Symbol;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.kohsuke.stapler.DataBoundConstructor;
@@ -174,6 +175,7 @@ public class RabbitMq extends HostBasedLogstashIndexer<RabbitMqDao>
   }
 
   @Extension
+  @Symbol("rabbitMq")
   public static class RabbitMqDescriptor extends LogstashIndexerDescriptor
   {
     @Override
