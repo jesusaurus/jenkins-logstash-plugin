@@ -1,3 +1,11 @@
+2.3.1
+-----
+* [JENKINS-52697] Configuration as Code (#87)
+* Add license info to pom (#86)
+* `logstashSend` step (#84)
+* Code Improvements (#82)
+* [JENKINS-52696] Incrementalify (#83)
+
 2.3.0
 -----
 * [JENKINS-52643] Allow programmatic configuration (#77)
