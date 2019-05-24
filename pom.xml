@@ -9,7 +9,7 @@
   </parent>
 
   <artifactId>logstash</artifactId>
-  <version>${revision}${changelist}</version>
+  <version>2.3.1</version>
   <packaging>hpi</packaging>
 
   <name>Logstash</name>
@@ -43,7 +43,7 @@
   <scm>
     <connection>scm:git:git://github.com/jenkinsci/logstash-plugin.git</connection>
     <developerConnection>scm:git:git@github.com:jenkinsci/logstash-plugin.git</developerConnection>
-    <tag>${scmTag}</tag>
+    <tag>logstash-2.3.1</tag>
     <url>https://github.com/jenkinsci/logstash-plugin</url>
   </scm>
   <distributionManagement>
