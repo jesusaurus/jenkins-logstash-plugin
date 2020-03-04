@@ -104,15 +104,15 @@ public class RabbitMq extends HostBasedLogstashIndexer<RabbitMqDao>
     this.username = username;
   }
 
-  public String getPassword()
+  public Secret getPassword()
   {
-    return Secret.toString(password);
+    return password;
   }
 
   @DataBoundSetter
-  public void setPassword(String password)
+  public void setPassword(Secret password)
   {
-    this.password = Secret.fromString(password);
+    this.password = password;
   }
 
   @Override
@@ -125,7 +125,7 @@ public class RabbitMq extends HostBasedLogstashIndexer<RabbitMqDao>
     if (getClass() != obj.getClass())
       return false;
     RabbitMq other = (RabbitMq) obj;
-    if (!Secret.toString(password).equals(other.getPassword()))
+    if (!Secret.toString(password).equals(other.getPassword().getPlainText()))
     {
       return false;
     }

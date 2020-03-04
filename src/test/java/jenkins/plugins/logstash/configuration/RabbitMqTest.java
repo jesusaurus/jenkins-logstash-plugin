@@ -7,6 +7,7 @@ import static org.junit.Assert.assertThat;
 import java.io.File;
 import java.nio.charset.Charset;
 
+import hudson.util.Secret;
 import org.hamcrest.core.IsInstanceOf;
 import org.junit.Before;
 import org.junit.Rule;
@@ -34,7 +35,7 @@ public class RabbitMqTest extends LogstashConfigurationTestBase
     indexer = new RabbitMq("UTF-8");
     indexer.setHost("localhost");
     indexer.setPort(4567);
-    indexer.setPassword("password");
+    indexer.setPassword(Secret.fromString("password"));
     indexer.setUsername("user");
     indexer.setQueue("queue");
     indexer.setVirtualHost("vhost");
@@ -42,7 +43,7 @@ public class RabbitMqTest extends LogstashConfigurationTestBase
     indexer2 = new RabbitMq("UTF-8");
     indexer2.setHost("localhost");
     indexer2.setPort(4567);
-    indexer2.setPassword("password");
+    indexer2.setPassword(Secret.fromString("password"));
     indexer2.setUsername("user");
     indexer2.setQueue("queue");
     indexer2.setVirtualHost("vhost");
@@ -50,7 +51,7 @@ public class RabbitMqTest extends LogstashConfigurationTestBase
     indexer3 = new RabbitMq("UTF-16");
     indexer3.setHost("localhost");
     indexer3.setPort(4567);
-    indexer3.setPassword("password");
+    indexer3.setPassword(Secret.fromString("password"));
     indexer3.setUsername("user");
     indexer3.setQueue("queue");
     indexer3.setQueue("vhost");
@@ -65,7 +66,7 @@ public class RabbitMqTest extends LogstashConfigurationTestBase
   @Test
   public void passwordChangeIsNotEqual()
   {
-    indexer.setPassword("newPassword");
+    indexer.setPassword(Secret.fromString("newPassword"));
     assertThat(indexer.equals(indexer2), is(false));
   }
 

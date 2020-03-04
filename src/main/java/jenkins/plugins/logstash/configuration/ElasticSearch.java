@@ -91,15 +91,15 @@ public class ElasticSearch extends LogstashIndexer<ElasticSearchDao>
     this.username = username;
   }
 
-  public String getPassword()
+  public Secret getPassword()
   {
-    return Secret.toString(password);
+    return password;
   }
 
   @DataBoundSetter
-  public void setPassword(String password)
+  public void setPassword(Secret password)
   {
-    this.password = Secret.fromString(password);
+    this.password = password;
   }
 
   @DataBoundSetter
@@ -132,7 +132,7 @@ public class ElasticSearch extends LogstashIndexer<ElasticSearchDao>
     if (getClass() != obj.getClass())
       return false;
     ElasticSearch other = (ElasticSearch) obj;
-    if (!Secret.toString(password).equals(other.getPassword()))
+    if (!Secret.toString(password).equals(other.getPassword().getPlainText()))
     {
       return false;
     }

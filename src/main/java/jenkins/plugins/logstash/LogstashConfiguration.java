@@ -9,6 +9,7 @@ import java.util.logging.Logger;
 
 import javax.annotation.CheckForNull;
 
+import hudson.util.Secret;
 import org.kohsuke.stapler.StaplerRequest;
 
 import com.cloudbees.syslog.MessageFormat;
@@ -162,7 +163,7 @@ public class LogstashConfiguration extends GlobalConfiguration
             redis.setHost(descriptor.getHost());
             redis.setPort(descriptor.getPort());
             redis.setKey(descriptor.getKey());
-            redis.setPassword(descriptor.getPassword());
+            redis.setPassword(Secret.fromString(descriptor.getPassword()));
             logstashIndexer = redis;
             enabled = true;
             break;
@@ -177,7 +178,7 @@ public class LogstashConfiguration extends GlobalConfiguration
               ElasticSearch es = new ElasticSearch();
               es.setUri(uri);
               es.setUsername(descriptor.getUsername());
-              es.setPassword(descriptor.getPassword());
+              es.setPassword(Secret.fromString(descriptor.getPassword()));
               logstashIndexer = es;
               enabled = true;
             }
@@ -194,7 +195,7 @@ public class LogstashConfiguration extends GlobalConfiguration
             rabbitMq.setPort(descriptor.getPort());
             rabbitMq.setQueue(descriptor.getKey());
             rabbitMq.setUsername(descriptor.getUsername());
-            rabbitMq.setPassword(descriptor.getPassword());
+            rabbitMq.setPassword(Secret.fromString(descriptor.getPassword()));
             logstashIndexer = rabbitMq;
             enabled = true;
             break;

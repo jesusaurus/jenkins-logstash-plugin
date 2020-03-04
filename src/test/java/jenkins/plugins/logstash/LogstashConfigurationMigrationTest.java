@@ -82,7 +82,7 @@ public class LogstashConfigurationMigrationTest extends LogstashConfigurationTes
     assertThat(redis.getHost(),equalTo("localhost"));
     assertThat(redis.getPort(),is(4567));
     assertThat(redis.getKey(), equalTo("logstash"));
-    assertThat(redis.getPassword(), equalTo("pwd"));
+    assertThat(redis.getPassword().getPlainText(), equalTo("pwd"));
   }
 
   @Test
@@ -130,7 +130,7 @@ public class LogstashConfigurationMigrationTest extends LogstashConfigurationTes
     ElasticSearch es = (ElasticSearch) indexer;
     URI uri = new URI("http://localhost:4567/logstash");
     assertThat(es.getUri(),equalTo(uri));
-    assertThat(es.getPassword(), equalTo("pwd"));
+    assertThat(es.getPassword().getPlainText(), equalTo("pwd"));
     assertThat(es.getUsername(), equalTo("user"));
   }
 
@@ -147,7 +147,7 @@ public class LogstashConfigurationMigrationTest extends LogstashConfigurationTes
     assertThat(es.getHost(),equalTo("localhost"));
     assertThat(es.getPort(),is(4567));
     assertThat(es.getQueue(), equalTo("logstash"));
-    assertThat(es.getPassword(), equalTo("pwd"));
+    assertThat(es.getPassword().getPlainText(), equalTo("pwd"));
     assertThat(es.getUsername(), equalTo("user"));
   }
 

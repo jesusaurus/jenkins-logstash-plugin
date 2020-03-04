@@ -34,15 +34,15 @@ public class Redis extends HostBasedLogstashIndexer<RedisDao>
     this.key = key;
   }
 
-  public String getPassword()
+  public Secret getPassword()
   {
-    return Secret.toString(password);
+    return password;
   }
 
   @DataBoundSetter
-  public void setPassword(String password)
+  public void setPassword(Secret password)
   {
-    this.password = Secret.fromString(password);
+    this.password = password;
   }
 
   @Override
@@ -55,7 +55,7 @@ public class Redis extends HostBasedLogstashIndexer<RedisDao>
     if (getClass() != obj.getClass())
       return false;
     Redis other = (Redis) obj;
-    if (!Secret.toString(password).equals(other.getPassword()))
+    if (!Secret.toString(password).equals(other.getPassword().getPlainText()))
     {
       return false;
     }

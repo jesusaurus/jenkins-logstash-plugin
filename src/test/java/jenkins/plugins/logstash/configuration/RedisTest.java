@@ -3,6 +3,7 @@ package jenkins.plugins.logstash.configuration;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 
+import hudson.util.Secret;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -24,13 +25,13 @@ public class RedisTest
     indexer.setHost("localhost");
     indexer.setPort(4567);
     indexer.setKey("key");
-    indexer.setPassword("password");
+    indexer.setPassword(Secret.fromString("password"));
 
     indexer2 = new Redis();
     indexer2.setHost("localhost");
     indexer2.setPort(4567);
     indexer2.setKey("key");
-    indexer2.setPassword("password");
+    indexer2.setPassword(Secret.fromString("password"));
 }
 
   @Test
@@ -42,7 +43,7 @@ public class RedisTest
   @Test
   public void passwordChangeIsNotEqual()
   {
-    indexer.setPassword("newPassword");
+    indexer.setPassword(Secret.fromString("newPassword"));
     assertThat(indexer.equals(indexer2), is(false));
   }
 

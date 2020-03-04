@@ -7,6 +7,7 @@ import java.net.MalformedURLException;
 import java.net.URISyntaxException;
 import java.net.URL;
 
+import hudson.util.Secret;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -27,13 +28,13 @@ public class ElasticSearchTest
     URL url = new URL("http://localhost:4567/key");
     indexer = new ElasticSearch();
     indexer.setUri(url);
-    indexer.setPassword("password");
+    indexer.setPassword(Secret.fromString("password"));
     indexer.setUsername("user");
     indexer.setMimeType("application/json");
 
     indexer2 = new ElasticSearch();
     indexer2.setUri(url);
-    indexer2.setPassword("password");
+    indexer2.setPassword(Secret.fromString("password"));
     indexer2.setUsername("user");
     indexer2.setMimeType("application/json");
 }
@@ -47,7 +48,7 @@ public class ElasticSearchTest
   @Test
   public void passwordChangeIsNotEqual()
   {
-    indexer.setPassword("newPassword");
+    indexer.setPassword(Secret.fromString("newPassword"));
     assertThat(indexer.equals(indexer2), is(false));
   }
 
