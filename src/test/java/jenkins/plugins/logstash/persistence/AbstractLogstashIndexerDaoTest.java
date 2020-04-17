@@ -79,6 +79,7 @@ public class AbstractLogstashIndexerDaoTest {
 
   private AbstractLogstashIndexerDao getInstance() {
     return new AbstractLogstashIndexerDao() {
+
       @Override
     public void push(String data) throws IOException {}
 

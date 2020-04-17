@@ -55,7 +55,7 @@ public class Redis extends HostBasedLogstashIndexer<RedisDao>
     if (getClass() != obj.getClass())
       return false;
     Redis other = (Redis) obj;
-    if (!Secret.toString(password).equals(other.getPassword().getPlainText()))
+    if (!Secret.toString(password).equals(Secret.toString(other.getPassword())))
     {
       return false;
     }

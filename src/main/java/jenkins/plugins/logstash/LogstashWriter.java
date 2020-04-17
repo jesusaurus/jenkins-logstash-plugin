@@ -35,8 +35,11 @@ import net.sf.json.JSONObject;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.exception.ExceptionUtils;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 import java.io.IOException;
 import java.io.OutputStream;
+import java.io.Serializable;
 import java.nio.charset.Charset;
 import java.util.Arrays;
 import java.util.Date;
@@ -51,22 +54,31 @@ import java.util.List;
  * @author Liam Newman
  * @since 1.0.5
  */
-public class LogstashWriter {
+@SuppressFBWarnings(value="SE_NO_SERIALVERSIONID")
+public class LogstashWriter implements Serializable {
 
   private final OutputStream errorStream;
-  private final Run<?, ?> build;
+  private final transient Run<?, ?> build;
   private final TaskListener listener;
   private final BuildData buildData;
   private final String jenkinsUrl;
   private final LogstashIndexerDao dao;
   private boolean connectionBroken;
-  private final Charset charset;
+  private final String charset;
+  private final String stageName;
+  private final String agentName;
 
   public LogstashWriter(Run<?, ?> run, OutputStream error, TaskListener listener, Charset charset) {
+    this(run, error, listener, charset, null, null);
+  }
+
+  public LogstashWriter(Run<?, ?> run, OutputStream error, TaskListener listener, Charset charset, String stageName, String agentName) {
     this.errorStream = error != null ? error : System.err;
+    this.stageName = stageName;
+    this.agentName = agentName;
     this.build = run;
     this.listener = listener;
-    this.charset = charset;
+    this.charset = charset.toString();
     this.dao = this.getDaoOrNull();
     if (this.dao == null) {
       this.jenkinsUrl = "";
@@ -82,7 +94,7 @@ public class LogstashWriter {
    *
    * @return the charset
    */
-  public Charset getCharset()
+  public String getCharset()
   {
     return charset;
   }
@@ -154,12 +166,12 @@ public class LogstashWriter {
     if (build instanceof AbstractBuild) {
       return new BuildData((AbstractBuild<?, ?>) build, new Date(), listener);
     } else {
-      return new BuildData(build, new Date(), listener);
+      return new BuildData(build, new Date(), listener, stageName, agentName);
     }
   }
 
   String getJenkinsUrl() {
-    return Jenkins.getInstance().getRootUrl();
+    return Jenkins.get().getRootUrl();
   }
 
   /**
@@ -207,8 +219,10 @@ public class LogstashWriter {
   private void logErrorMessage(String msg) {
     try {
       connectionBroken = true;
-      errorStream.write(msg.getBytes(charset));
-      errorStream.flush();
+      if (errorStream != null) {
+        errorStream.write(msg.getBytes(charset));
+        errorStream.flush();
+      }
     } catch (IOException ex) {
       // This should never happen, but if it does we just have to let it go.
       ex.printStackTrace();

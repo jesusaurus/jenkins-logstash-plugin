@@ -18,13 +18,8 @@ public class LogstashConsoleLogFilter extends ConsoleLogFilter implements Serial
 
   private static final Logger LOGGER = Logger.getLogger(LogstashConsoleLogFilter.class.getName());
 
-  private transient Run<?, ?> run;
   public LogstashConsoleLogFilter() {}
 
-  public LogstashConsoleLogFilter(Run<?, ?> run)
-  {
-    this.run = run;
-  }
   private static final long serialVersionUID = 1L;
 
   @Override
@@ -49,15 +44,7 @@ public class LogstashConsoleLogFilter extends ConsoleLogFilter implements Serial
         return logger;
       }
     }
-    if (run != null)
-    {
-      LogstashWriter logstash = getLogStashWriter(run, logger);
-      return new LogstashOutputStream(logger, logstash);
-    }
-    else
-    {
-      return logger;
-    }
+    return logger;
   }
 
   LogstashWriter getLogStashWriter(Run<?, ?> build, OutputStream errorStream)

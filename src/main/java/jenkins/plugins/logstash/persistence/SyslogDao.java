@@ -7,13 +7,16 @@ import com.cloudbees.syslog.MessageFormat;
 import com.cloudbees.syslog.Severity;
 import com.cloudbees.syslog.sender.UdpSyslogMessageSender;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 /*
  * TODO: add support for TcpSyslogMessageSender
  */
+@SuppressFBWarnings(value="SE_NO_SERIALVERSIONID")
 public class SyslogDao extends HostBasedLogstashIndexerDao {
 
   private MessageFormat messageFormat = MessageFormat.RFC_3164;
-  private final UdpSyslogMessageSender messageSender;
+  private transient UdpSyslogMessageSender messageSender;
 
   public SyslogDao(String host, int port) {
     this(null, host, port);
@@ -27,7 +30,7 @@ public class SyslogDao extends HostBasedLogstashIndexerDao {
 
   public SyslogDao(UdpSyslogMessageSender udpSyslogMessageSender, String host, int port) {
     super(host, port);
-    messageSender = udpSyslogMessageSender == null ? new UdpSyslogMessageSender() : udpSyslogMessageSender;
+    messageSender = udpSyslogMessageSender;
   }
 
   public void setMessageFormat(MessageFormat format) {
@@ -38,12 +41,19 @@ public class SyslogDao extends HostBasedLogstashIndexerDao {
     return messageFormat;
   }
 
+  private synchronized void getMessageSender() {
+    if (messageSender == null) {
+      messageSender = new UdpSyslogMessageSender();
+    }
+  }
+
   @Override
   public void push(String data) throws IOException {
     // Making the JSON document compliant to Common Event Expression (CEE)
     // Ref: http://www.rsyslog.com/json-elasticsearch/
     data = " @cee: "  + data;
     // SYSLOG Configuration
+    getMessageSender();
     messageSender.setDefaultMessageHostname(getHost());
     messageSender.setDefaultAppName("jenkins:");
     messageSender.setDefaultFacility(Facility.USER);

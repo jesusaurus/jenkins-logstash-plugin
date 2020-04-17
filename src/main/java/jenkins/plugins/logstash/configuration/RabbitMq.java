@@ -125,7 +125,7 @@ public class RabbitMq extends HostBasedLogstashIndexer<RabbitMqDao>
     if (getClass() != obj.getClass())
       return false;
     RabbitMq other = (RabbitMq) obj;
-    if (!Secret.toString(password).equals(other.getPassword().getPlainText()))
+    if (!Secret.toString(password).equals(Secret.toString(other.getPassword())))
     {
       return false;
     }

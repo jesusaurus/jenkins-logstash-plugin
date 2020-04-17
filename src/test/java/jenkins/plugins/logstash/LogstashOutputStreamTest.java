@@ -1,8 +1,8 @@
 package jenkins.plugins.logstash;
 
 import static org.hamcrest.core.StringContains.containsString;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.*;
 
 import java.io.ByteArrayOutputStream;
@@ -33,7 +33,7 @@ public class LogstashOutputStreamTest {
     buffer = new ByteArrayOutputStream();
     Mockito.doNothing().when(mockWriter).write(anyString());
     when(mockWriter.isConnectionBroken()).thenReturn(false);
-    when(mockWriter.getCharset()).thenReturn(Charset.defaultCharset());
+    when(mockWriter.getCharset()).thenReturn(Charset.defaultCharset().toString());
   }
 
   @After

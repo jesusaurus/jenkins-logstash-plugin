@@ -40,14 +40,11 @@ public class ElasticSearchSSLCertsTest {
     @Rule
     public ExpectedException thrown = ExpectedException.none();
 
-    private static final KeyStore NO_CLIENT_KEYSTORE = null;
     private static final SSLContext NO_SSL_CONTEXT = null;
-    private static final TrustManager[] NO_SERVER_TRUST_MANAGER = null;
 
     private static final char[] KEYPASS_AND_STOREPASS_VALUE = "aaaaaa".toCharArray();
     private static final String JAVA_KEYSTORE = "jks";
-    private static final String CLIENT_KEYSTORE = "elasticsearch-sslcerts/keystore.ks";
-    private static final String CLIENT_TRUSTSTORE = "elasticsearch-sslcerts/truststore.ks";
+    private static final String CLIENT_KEYSTORE = "elasticsearch-sslcerts/cert.pkcs12";
 
     @Test
     public void NoSSLPost_NoSSLServer_Returns200OK() throws Exception {
@@ -98,7 +95,7 @@ public class ElasticSearchSSLCertsTest {
 
         ElasticSearchDao dao = new ElasticSearchDao(new URI("https://" + baseUrl), "", "");
         KeyStore keyStore = getStore(CLIENT_KEYSTORE, KEYPASS_AND_STOREPASS_VALUE);
-        dao.setCustomKeyStore(keyStore);
+        dao.setCustomKeyStore(keyStore, "aaaaaa");
 
         try {
             dao.push("");
@@ -116,7 +113,7 @@ public class ElasticSearchSSLCertsTest {
 
         ElasticSearchDao dao = new ElasticSearchDao(new URI("https://" + baseUrl), "", "");
         KeyStore keyStore = getStore(CLIENT_KEYSTORE, KEYPASS_AND_STOREPASS_VALUE);
-        dao.setCustomKeyStore(keyStore);
+        dao.setCustomKeyStore(keyStore, "aaaaaa");
 
         try {
             thrown.expect(IsInstanceOf.instanceOf(SSLException.class));

@@ -1,7 +1,8 @@
 package jenkins.plugins.logstash;
 
 import static org.hamcrest.Matchers.equalTo;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.Matchers.greaterThan;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 import java.util.List;
 
@@ -15,6 +16,7 @@ import org.junit.Test;
 import org.jvnet.hudson.test.BuildWatcher;
 import org.jvnet.hudson.test.JenkinsRule;
 
+import hudson.model.Slave;
 import jenkins.plugins.logstash.configuration.MemoryIndexer;
 import jenkins.plugins.logstash.persistence.MemoryDao;
 import net.sf.json.JSONObject;
@@ -51,6 +53,45 @@ public class PipelineTest
     assertThat(dataLines.size(), equalTo(1));
     JSONObject firstLine = dataLines.get(0);
     JSONObject data = firstLine.getJSONObject("data");
+    assertThat(data.getString("result"),equalTo("SUCCESS"));
+  }
+
+  @Test
+  public void logstashStageAndAgent() throws Exception
+  {
+    Slave slave = j.createOnlineSlave();
+    String agentName = slave.getNodeName();
+    WorkflowJob p = j.jenkins.createProject(WorkflowJob.class, "p");
+    p.setDefinition(new CpsFlowDefinition("stage('stage1') { " +
+      "node('" + agentName + "') {\n" +
+      "logstash {\n" +
+        "currentBuild.result = 'SUCCESS'\n" +
+        "echo 'Message'\n" +
+    "}}}", true));
+    j.assertBuildStatusSuccess(p.scheduleBuild2(0).get());
+    List<JSONObject> dataLines = memoryDao.getOutput();
+    assertThat(dataLines.size(), equalTo(1));
+    JSONObject firstLine = dataLines.get(0);
+    JSONObject data = firstLine.getJSONObject("data");
+    assertThat(data.getString("result"),equalTo("SUCCESS"));
+    assertThat(data.getString("stageName"),equalTo("stage1"));
+    assertThat(data.getString("agentName"),equalTo(agentName));
+  }
+
+  @Test
+  public void globalLogstash() throws Exception
+  {
+    LogstashConfiguration config = LogstashConfiguration.getInstance();
+    config.setEnableGlobally(true);
+    WorkflowJob p = j.jenkins.createProject(WorkflowJob.class, "p");
+    p.setDefinition(new CpsFlowDefinition(
+        "currentBuild.result = 'SUCCESS'\n" +
+        "echo 'Message'\n", true));
+    j.assertBuildStatusSuccess(p.scheduleBuild2(0).get());
+    List<JSONObject> dataLines = memoryDao.getOutput();
+    assertThat(dataLines.size(), greaterThan(0));
+    JSONObject lastLine = dataLines.get(dataLines.size()-1);
+    JSONObject data = lastLine.getJSONObject("data");
     assertThat(data.getString("result"),equalTo("SUCCESS"));
   }
 

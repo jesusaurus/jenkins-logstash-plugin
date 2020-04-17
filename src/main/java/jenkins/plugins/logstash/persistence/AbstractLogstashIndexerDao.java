@@ -24,6 +24,7 @@
 
 package jenkins.plugins.logstash.persistence;
 
+import java.io.Serializable;
 import java.util.Calendar;
 import java.util.List;
 
@@ -36,7 +37,7 @@ import net.sf.json.JSONObject;
  * @author Rusty Gerard
  * @since 1.0.0
  */
-public abstract class AbstractLogstashIndexerDao implements LogstashIndexerDao {
+public abstract class AbstractLogstashIndexerDao implements LogstashIndexerDao, Serializable {
 
   @Override
   public JSONObject buildPayload(BuildData buildData, String jenkinsUrl, List<String> logLines) {

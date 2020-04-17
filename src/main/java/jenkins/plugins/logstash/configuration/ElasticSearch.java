@@ -8,6 +8,8 @@ import java.net.URL;
 
 import javax.activation.MimeType;
 import javax.activation.MimeTypeParseException;
+import javax.annotation.Nonnull;
+
 import java.security.cert.CertificateException;
 
 import org.apache.commons.lang.StringUtils;
@@ -132,7 +134,7 @@ public class ElasticSearch extends LogstashIndexer<ElasticSearchDao>
     if (getClass() != obj.getClass())
       return false;
     ElasticSearch other = (ElasticSearch) obj;
-    if (!Secret.toString(password).equals(other.getPassword().getPlainText()))
+    if (!Secret.toString(password).equals(Secret.toString(other.getPassword())))
     {
       return false;
     }
@@ -188,35 +190,26 @@ public class ElasticSearch extends LogstashIndexer<ElasticSearchDao>
     ElasticSearchDao esDao = new ElasticSearchDao(getUri(), username, Secret.toString(password));
 
     esDao.setMimeType(getMimeType());
-    try {
-        esDao.setCustomKeyStore(getCustomKeyStore());
-    } catch (KeyStoreException | CertificateException |
-             NoSuchAlgorithmException | KeyManagementException | IOException e) {
-          LOGGER.log(Level.WARNING, e.getMessage(), e);
-    }
-    return esDao;
-  }
-
-  private KeyStore getCustomKeyStore() {
-    KeyStore customKeyStore = null;
-
-    // Fetch custom alias+certificate as a keystore (if present)
     if (!StringUtils.isBlank(customServerCertificateId)) {
-      StandardCertificateCredentials certificateCredentials = getCredentials(customServerCertificateId);
-      if (certificateCredentials != null) {
-        // Fetch keystore containing custom certificate
-        customKeyStore = certificateCredentials.getKeyStore();
+      try {
+          StandardCertificateCredentials certificateCredentials = getCredentials(customServerCertificateId);
+          if (certificateCredentials != null) {
+            esDao.setCustomKeyStore(certificateCredentials.getKeyStore(),
+                Secret.toString(certificateCredentials.getPassword()));
+          }
+      } catch (KeyStoreException | CertificateException |
+               NoSuchAlgorithmException | IOException e) {
+            LOGGER.log(Level.WARNING, e.getMessage(), e);
       }
     }
-
-    return customKeyStore;
+    return esDao;
   }
 
   private StandardCertificateCredentials getCredentials(String credentials)
   {
     return (StandardCertificateCredentials) CredentialsMatchers.firstOrNull(
-        CredentialsProvider.lookupCredentials(StandardCredentials.class,
-            Jenkins.getInstance(), ACL.SYSTEM, Collections.emptyList()),
+        CredentialsProvider.lookupCredentials(StandardCertificateCredentials.class,
+            Jenkins.get(), ACL.SYSTEM, Collections.emptyList()),
         CredentialsMatchers.withId(credentials)
     );
   }
@@ -247,7 +240,7 @@ public class ElasticSearch extends LogstashIndexer<ElasticSearchDao>
                   CredentialsMatchers.instanceOf(StandardCertificateCredentials.class)
               ),
               CredentialsProvider.lookupCredentials(StandardCredentials.class,
-                  Jenkins.getInstance(),
+                  Jenkins.get(),
                   ACL.SYSTEM,
                   Collections.emptyList()
               )

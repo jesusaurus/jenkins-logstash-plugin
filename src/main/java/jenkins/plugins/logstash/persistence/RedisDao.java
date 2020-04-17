@@ -28,6 +28,7 @@ import java.io.IOException;
 
 import org.apache.commons.lang.StringUtils;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
 import redis.clients.jedis.JedisPoolConfig;
@@ -40,8 +41,10 @@ import redis.clients.jedis.exceptions.JedisException;
  * @author Rusty Gerard
  * @since 1.0.0
  */
+@SuppressFBWarnings(value="SE_NO_SERIALVERSIONID")
 public class RedisDao extends HostBasedLogstashIndexerDao {
-  private final JedisPool pool;
+
+  private transient JedisPool pool;
 
   private final String password;
   private final String key;
@@ -68,7 +71,13 @@ public class RedisDao extends HostBasedLogstashIndexerDao {
 
     // The JedisPool must be a singleton
     // We assume this is used as a singleton as well
-    pool = factory == null ? new JedisPool(new JedisPoolConfig(), host, port) : factory;
+    pool = factory;
+  }
+
+  private synchronized void getJedisPool() {
+    if (pool == null) {
+      pool = new JedisPool(new JedisPoolConfig(), getHost(), getPort());
+    }
   }
 
   public String getPassword()
@@ -86,6 +95,7 @@ public class RedisDao extends HostBasedLogstashIndexerDao {
     Jedis jedis = null;
     boolean connectionBroken = false;
     try {
+      getJedisPool();
       jedis = pool.getResource();
       if (!StringUtils.isBlank(password)) {
         jedis.auth(password);

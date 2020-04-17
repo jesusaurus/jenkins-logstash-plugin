@@ -48,6 +48,7 @@ import java.util.logging.Logger;
 
 import static java.util.logging.Level.WARNING;
 import java.io.IOException;
+import java.io.Serializable;
 import java.lang.invoke.MethodHandles;
 import net.sf.json.JSONObject;
 
@@ -56,21 +57,25 @@ import org.apache.commons.lang.StringUtils;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 /**
  * POJO for mapping build info to JSON.
  *
  * @author Rusty Gerard
  * @since 1.0.0
  */
-public class BuildData {
+@SuppressFBWarnings(value="SE_NO_SERIALVERSIONID")
+public class BuildData implements Serializable {
+
   // ISO 8601 date format
   private final static Logger LOGGER = Logger.getLogger(MethodHandles.lookup().lookupClass().getCanonicalName());
-  public static class TestData {
+  public static class TestData implements Serializable {
     private final int totalCount, skipCount, failCount, passCount;
     private final List<FailedTest> failedTestsWithErrorDetail;
     private final List<String> failedTests;
 
-    public static class FailedTest {
+    public static class FailedTest implements Serializable {
       private final String fullName, errorDetails;
       public FailedTest(String fullName, String errorDetails) {
         super();
@@ -160,6 +165,8 @@ public class BuildData {
   private String url;
   private String buildHost;
   private String buildLabel;
+  private String stageName;
+  private String agentName;
   private int buildNum;
   private long buildDuration;
   private transient String timestamp; // This belongs in the root object
@@ -212,9 +219,11 @@ public class BuildData {
   }
 
   // Pipeline project build
-  public BuildData(Run<?, ?> build, Date currentTime, TaskListener listener) {
+  public BuildData(Run<?, ?> build, Date currentTime, TaskListener listener, String stageName, String agentName) {
     initData(build, currentTime);
 
+    this.agentName = agentName;
+    this.stageName = stageName;
     rootProjectName = projectName;
     rootFullProjectName = fullProjectName;
     rootProjectDisplayName = displayName;
@@ -262,14 +271,15 @@ public class BuildData {
 
   public void updateResult()
   {
-    if (result == null && build.getResult() != null)
-    {
-      Result result = build.getResult();
-      this.result = result == null ? null : result.toString();
-    }
-    Action testResultAction = build.getAction(AbstractTestResultAction.class);
-    if (testResults == null && testResultAction != null) {
-      testResults = new TestData(testResultAction);
+    if (build != null) {
+      if (result == null && build.getResult() != null) {
+        Result result = build.getResult();
+        this.result = result == null ? null : result.toString();
+      }
+      Action testResultAction = build.getAction(AbstractTestResultAction.class);
+      if (testResults == null && testResultAction != null) {
+        testResults = new TestData(testResultAction);
+      }
     }
   }
 
@@ -442,5 +452,21 @@ public class BuildData {
 
   public void setTestResults(TestData testResults) {
     this.testResults = testResults;
+  }
+
+  public String getStageName() {
+    return stageName;
+  }
+
+  public void setStageName(String stageName) {
+    this.stageName = stageName;
+  }
+
+  public String getAgentName() {
+    return agentName;
+  }
+
+  public void setAgentName(String agentName) {
+    this.agentName = agentName;
   }
 }

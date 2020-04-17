@@ -36,6 +36,7 @@ import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.impl.client.CloseableHttpClient;
 
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
@@ -52,6 +53,7 @@ import java.security.cert.CertificateException;
 
 import com.google.common.collect.Range;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import jenkins.plugins.logstash.utils.SSLHelper;
 
 
@@ -61,9 +63,10 @@ import jenkins.plugins.logstash.utils.SSLHelper;
  * @author Liam Newman
  * @since 1.0.4
  */
+@SuppressFBWarnings(value="SE_NO_SERIALVERSIONID")
 public class ElasticSearchDao extends AbstractLogstashIndexerDao {
 
-  private final HttpClientBuilder clientBuilder;
+  private transient HttpClientBuilder clientBuilder;
   private final URI uri;
   private final String auth;
   private final Range<Integer> successCodes = closedOpen(200,300);
@@ -71,7 +74,8 @@ public class ElasticSearchDao extends AbstractLogstashIndexerDao {
   private String username;
   private String password;
   private String mimeType;
-  private KeyStore customKeyStore;
+  private byte[] keystoreBytes;
+  private String keyStorePassword;
 
   //primary constructor used by indexer factory
   public ElasticSearchDao(URI uri, String username, String password) {
@@ -106,7 +110,36 @@ public class ElasticSearchDao extends AbstractLogstashIndexerDao {
       auth = null;
     }
 
-    clientBuilder = factory == null ? HttpClientBuilder.create() : factory;
+    clientBuilder = factory;
+  }
+
+  private byte[] getKeystoreBytes() {
+    return keystoreBytes;
+  }
+
+  private String getKeyStorePassword() {
+    return keyStorePassword;
+  }
+
+  private synchronized HttpClientBuilder getClientBuilder() throws IOException {
+    if (clientBuilder == null) {
+      clientBuilder = HttpClientBuilder.create();
+      if (getKeystoreBytes() != null) {
+        KeyStore trustStore;
+        try {
+          trustStore = KeyStore.getInstance("PKCS12");
+          String pwd = getKeyStorePassword();
+          if (pwd == null) {
+            pwd = "";
+          }
+          trustStore.load(new ByteArrayInputStream(getKeystoreBytes()), pwd.toCharArray());
+          SSLHelper.setClientBuilderSSLContext(clientBuilder, trustStore);
+        } catch (KeyStoreException | NoSuchAlgorithmException | CertificateException | KeyManagementException e) {
+          throw new IOException(e);
+        }
+      }
+    }
+    return clientBuilder;
   }
 
 
@@ -152,19 +185,18 @@ public class ElasticSearchDao extends AbstractLogstashIndexerDao {
     this.mimeType = mimeType;
   }
 
-  public KeyStore getCustomKeyStore() {
-    return this.customKeyStore;
-  }
-
   String getAuth()
   {
     return auth;
   }
 
-  public void setCustomKeyStore(KeyStore customKeyStore) throws
-          CertificateException, NoSuchAlgorithmException, KeyStoreException, KeyManagementException, IOException {
-    SSLHelper.setClientBuilderSSLContext(this.clientBuilder, customKeyStore);
-    this.customKeyStore = customKeyStore;
+  public void setCustomKeyStore(KeyStore customKeyStore, String keyStorePassword) throws KeyStoreException, NoSuchAlgorithmException, CertificateException, IOException {
+    if (customKeyStore != null) {
+      ByteArrayOutputStream bos = new ByteArrayOutputStream();
+      customKeyStore.store(bos, keyStorePassword.toCharArray());
+      keystoreBytes = bos.toByteArray();
+      this.keyStorePassword = keyStorePassword;
+    }
   }
 
   HttpPost getHttpPost(String data) {
@@ -185,7 +217,7 @@ public class ElasticSearchDao extends AbstractLogstashIndexerDao {
   public void push(String data) throws IOException {
     HttpPost post = getHttpPost(data);
 
-    try (CloseableHttpClient httpClient = clientBuilder.build(); CloseableHttpResponse response = httpClient.execute(post)) {
+    try (CloseableHttpClient httpClient = getClientBuilder().build(); CloseableHttpResponse response = httpClient.execute(post)) {
       if (!successCodes.contains(response.getStatusLine().getStatusCode())) {
         throw new IOException(this.getErrorMessage(response));
       }
