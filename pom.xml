@@ -9,7 +9,7 @@
   </parent>
 
   <artifactId>logstash</artifactId>
-  <version>${revision}${changelist}</version>
+  <version>${changelist}</version>
   <packaging>hpi</packaging>
 
   <name>Logstash</name>
@@ -60,8 +60,7 @@
   </distributionManagement>
 
   <properties>
-    <revision>2.5.0</revision>
-    <changelist>-SNAPSHOT</changelist>
+    <changelist>999999-SNAPSHOT</changelist>
     <skipIntegrationTests>true</skipIntegrationTests>
     <java.level>8</java.level>
     <jenkins.version>2.235.1</jenkins.version>
